@@ -1,0 +1,35 @@
+{
+  "name": "AttackOfTheKillerRoombas",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "Terrain": {
+        "$path": "example/terrain.rbxm"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$path": "example/lighting.rbxm"
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Game": {
+        "$path": "example/server"
+      },
+      "ExamplePackages": {
+        "$path": "example/Packages"
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "$path": "Packages",
+      "Assets": {
+        "$path": "example/assets.rbxm"
+      },
+      "Matter": {
+        "$path": "lib"
+      }
+    }
+  }
+}
