@@ -1,5 +1,5 @@
 [package]
-name = "ekdesktop/tomfoolery"
+name = "tinydev/tomfoolery"
 version = "0.1.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
@@ -7,3 +7,11 @@ realm = "shared"
 [dependencies]
 axis = "sleitnick/axis@0.1.0"
 matter = "evaera/matter@0.1.2"
+#Net = "vorlias/net@3.0.0"
+Net = "vorlias/net@2.1.4"
+rx = "nightcycle/rx@3.7.3"
+promise = "evaera/promise@4.0.0"
+llama = "freddylist/llama@1.1.1"
+
+[server-dependencies]
+cmdr = "evaera/cmdr@1.8.4"

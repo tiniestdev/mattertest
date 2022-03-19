@@ -1,0 +1,2 @@
+[tools]
+rojo = { source = "quenty/rojo", version = "=7.0.0-quenty-npm-canary.4" }

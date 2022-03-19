@@ -4,17 +4,15 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
-      "Common": {
-        "$path": "src/shared"
-      },
-      "Packages": {
-        "$path": "Packages"
-      },
+      "$path": "src/shared",
       "Extensions": {
         "$path": "src/extensions"
       },
-      "Components": {
-        "$path": "src/components"
+      "Util": {
+        "$path": "src/util"
+      },
+      "Packages": {
+        "$path": "Packages"
       }
     },
 
@@ -22,11 +20,8 @@
       "Server": {
         "$path": "src/server"
       },
-      "Providers": {
-        "$path": "src/serverproviders"
-      },
-      "Systems": {
-        "$path": "src/systems"
+      "ServerPackages": {
+        "$path": "ServerPackages"
       }
     },
 

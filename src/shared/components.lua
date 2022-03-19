@@ -1,0 +1,47 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Matter = require(ReplicatedStorage.Packages.matter)
+
+export type InstanceType = {
+	instance: Instance,
+}
+export type PhysicsType = {
+	velocity: Vector3,
+	angularVelocity: Vector3,
+	mass: number,
+	density: number,
+	friction: number,
+	restitution: number,
+	doNotReconcile: boolean,
+}
+
+export type TransformType = {
+	cframe: CFrame,
+	size: Vector3,
+}
+
+local COMPONENTS = {
+	"Instance",
+	"Flammable",
+	"Character",
+
+	-- Basepart stuff
+	"Physics",
+	"Transform",
+
+	-- Applied to objects associated with a certain team or alliance.
+	"Teamed",
+
+	-- Actual entities of teams and groups
+	"Team",
+	"Alliance",
+
+	"Player",
+}
+
+local components = {}
+for _, name in ipairs(COMPONENTS) do
+	components[name] = Matter.component(name)
+	--print("Made component of name ", name, ": ", components[name])
+end
+return components
+
