@@ -17,7 +17,6 @@ return function(world)
         world:insert(teamEntityId, teamC:patch({
             playerIds = Set.add(teamC.playerIds, playerId)
         }))
-        print("==============ADDED PLAYERIDS TO TEAMENTITY")
 
         -- handle the team that it left
         if teamedCR.old then
@@ -27,12 +26,7 @@ return function(world)
                 playerIds = Set.subtract(oldTeamC.playerIds, playerId)
             }))
         else
-            print("No old team")
         end
-    end
-
-    for id, teamCR in world:queryChanged(Components.Team) do
-        print("TEAM ", teamCR.new.teamId, "DETECTED ITSELF CHANGE!!! CURRENT PLAYERIDS: ", teamCR.new.playerIds)
     end
 end
 

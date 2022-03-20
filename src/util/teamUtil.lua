@@ -20,13 +20,9 @@ function teamUtil.getUnfilledTeamId(world)
     for id, teamC in world:query(Components.Team) do
         if teamC.autoAssignable then
             local teamCount = #teamUtil.listPlayerIds(teamC.playerIds)
-            print("TEAM ", teamC.teamName, " HAS ", teamCount, " PLAYERS")
-            print(teamC)
-            print("(MIN IS ", min, ")")
             if (not min) or (teamCount < min) then
                 min = min and math.min(teamCount, min) or teamCount
                 chosenId = id
-                print("CHOSE TEAM ", teamC.teamName)
             end
         end
     end

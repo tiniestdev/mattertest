@@ -9,7 +9,7 @@ local New = Fusion.New
 return function(props)
     return New "TextButton" {
         Name = "TeamButton";
-        Size = UDim2.new(0.3, 0, 1, 0);
+        Size = UDim2.new(0.2, 0, 1, 0);
         Text = string.upper(props.team);
         Font = Enum.Font.GothamBlack;
         TextScaled = true;
@@ -21,7 +21,7 @@ return function(props)
         };
         [Fusion.OnEvent "MouseButton1Click"] = function()
             Remotes.Client:Get("ChangeTeam"):SendToServer(props.team)
-            print("sent event with args: " .. props.team)
+            -- print("sent event with args: " .. props.team)
         end;
     }
 end

@@ -9,14 +9,14 @@ local RequestRespawnEvent = MatterUtil.NetSignalToEvent("RequestRespawn", Remote
 return function(world)
     for i, player in Matter.useEvent(RequestRespawnEvent, "Event") do
         if Matter.useThrottle(1, player) then
-            task.spawn(function()
+            task.defer(function()
                 player:LoadCharacter()
             end)
         end
     end
     -- Upon team change, respawn player
     for id, teamedC, playerC in world:queryChanged(Components.Teamed, Components.Player) do
-        task.spawn(function()
+        task.defer(function()
             playerC.player:LoadCharacter()
         end)
     end

@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local Matter = require(ReplicatedStorage.Packages.matter)
+local Llama = require(ReplicatedStorage.Packages.llama)
 local Components = require(ReplicatedStorage.components)
 local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
@@ -43,10 +44,88 @@ function MatterStart:AxisStarted()
     print("MatterStart: Binding components from tags")
     MatterUtil.bindCollectionService(world)
 
-    PlayerUtil.getCharactersObservable():Subscribe(function(character)
-        print("MatterStart: Character added: ", character)
-        CollectionService:AddTag(character, "Character")
-    end)
+    local chest = world:spawn(
+        Components.Storage({
+            storableIds = {},
+            maxCapacity = 10,
+        })
+    )
+    local pear = world:spawn(
+        Components.Storable({
+            storageId = nil,
+            size = 2,
+        }),
+        Components.Corporeal({
+            instance = workspace.pear
+        })
+    )
+    local apple = world:spawn(
+        Components.Storable({
+            storageId = nil,
+            size = 2,
+        }),
+        Components.Corporeal({
+            instance = workspace.apple
+        })
+    )
+    local orange = world:spawn(
+        Components.Storable({
+            storageId = nil,
+            size = 3,
+        }),
+        Components.Corporeal({
+            instance = workspace.orange
+        })
+    )
+    local bigSword = world:spawn(
+        Components.Storable({
+            storageId = nil,
+            size = 3,
+        }),
+        Components.Corporeal({
+            instance = workspace.sword
+        })
+    )
+
+    print(world:get(bigSword, Components.Corporeal))
+    --[[
+    task.spawn(function()
+        task.wait(1)
+        print("Gonna insert pear")
+        world:insert(pear, world:get(pear, Components.Storable):patch({
+            storageId = chest,
+        }))
+        task.wait(1)
+        print("Gonna insert apple")
+        world:insert(apple, world:get(apple, Components.Storable):patch({
+            storageId = chest,
+        }))
+        task.wait(1)
+        print("Gonna insert orange")
+        world:insert(orange, world:get(orange, Components.Storable):patch({
+            storageId = chest,
+        }))
+        task.wait(2)
+        print("Gonna insert bigSword")
+        world:insert(bigSword, world:get(bigSword, Components.Storable):patch({
+            storageId = chest,
+        }))
+        task.wait(3)
+        print("Removing every single item from the chest")
+        world:insert(chest, world:get(chest, Components.Storage):patch({
+            storableIds = {},
+        }))
+        task.wait(3)
+        print("Inserting every single item back into the chest")
+        world:insert(chest, world:get(chest, Components.Storage):patch({
+            storableIds = Llama.List.toSet({
+                pear,
+                apple,
+                orange,
+                bigSword,
+            }),
+        }))
+    end)]]
 end
 
 return MatterStart

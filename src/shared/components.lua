@@ -20,26 +20,76 @@ export type TransformType = {
 }
 
 local COMPONENTS = {
-	"Instance",
-	"Flammable",
-	"Character",
+	Replicated = {
+		identifier = { }
+	},
+	Instance = {
+		instance = { }
+	},
+	Flammable = {
+
+	},
 
 	-- Basepart stuff
-	"Physics",
-	"Transform",
+	Physics = {
+
+	},
+	Transform = {
+
+	},
 
 	-- Applied to objects associated with a certain team or alliance.
-	"Teamed",
+	Teamed = {
+
+	},
 
 	-- Actual entities of teams and groups
-	"Team",
-	"Alliance",
+	Team = {
 
-	"Player",
+	},
+	Alliance = {
+
+	},
+
+	Player = {
+
+	},
+	Character = {
+
+	},
+	Health = {
+
+	},
+	Storage = {
+
+	},
+	Walkspeed = {
+
+	},
+
+	HoldForce = {
+
+	},
+	HoldForceClient = {
+
+	},
+	Holdable = {
+
+	},
+
+	Tool = {
+
+	},
+	Storable = {
+
+	},
+	Corporeal = {
+
+	}, -- does it have a physical form? (Some instances aren't corporeal)
 }
 
 local components = {}
-for _, name in ipairs(COMPONENTS) do
+for name, info in pairs(COMPONENTS) do
 	components[name] = Matter.component(name)
 	--print("Made component of name ", name, ": ", components[name])
 end

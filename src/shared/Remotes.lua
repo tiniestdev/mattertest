@@ -8,6 +8,9 @@ local Remotes = Net.Definitions.Create({
     RequestRespawn = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 120, })
     }),
+    
+    -- REPLICATIONS
+    ReplicateStorage = Net.Definitions.ServerToClientEvent({ })
 })
 
 return Remotes

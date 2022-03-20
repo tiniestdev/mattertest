@@ -4,7 +4,7 @@ local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 
 local UIFolder = script.Parent.Parent.UI
-local TeamChoose = require(UIFolder.TeamChoose)
+local Main = require(UIFolder.Main)
 
 local FusionClient = {}
 
@@ -21,7 +21,7 @@ function FusionClient:AxisStarted()
         Name = "FusionClient",
         Parent = Players.LocalPlayer.PlayerGui,
         [Fusion.Children] = {
-            TeamChoose {},
+            Main {},
         },
     }
 end

@@ -147,6 +147,11 @@ function MatterUtil.NetSignalToEvent(signalName, remotes)
 end
 
 function MatterUtil.ObservableToEvent(observable)
+    local newSignal = Instance.new("BindableEvent")
+    observable:Subscribe(function(...)
+        newSignal:Fire(...)
+    end)
+    return newSignal
 end
 
 return MatterUtil

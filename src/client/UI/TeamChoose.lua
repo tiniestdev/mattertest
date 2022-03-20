@@ -13,6 +13,7 @@ return function(props)
         BorderSizePixel = 0;
         Position = UDim2.new(0.5, 0, 0.8, 0);
         Size = UDim2.new(1, 0, 0.1, 0);
+        Visible = Fusion.Computed(function() return props.showState:get() end);
         [Fusion.Children] = {
             New "UISizeConstraint" {
                 MinSize = Vector2.new(0,50);
