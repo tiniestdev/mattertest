@@ -10,7 +10,14 @@ local Remotes = Net.Definitions.Create({
     }),
     
     -- REPLICATIONS
-    ReplicateStorage = Net.Definitions.ServerToClientEvent({ })
+    RequestStorage = Net.Definitions.ClientToServerEvent({
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60, })
+    }),
+    ReplicateStorage = Net.Definitions.ServerToClientEvent({ }),
+
+    ClientToServer = Net.Definitions.ClientToServerEvent({ }),
+    ServerToClient = Net.Definitions.ServerToClientEvent({ }),
+    --ReplicateBackpack = Net.Definitions.ServerToClientEvent({ }),
 })
 
 return Remotes

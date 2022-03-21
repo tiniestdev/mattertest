@@ -15,6 +15,9 @@ return function(world)
 
     -- Handle character deletion when playerCR's characterId is set to nothing
     for id, playerCR in world:queryChanged(Components.Player) do
+        -- Newly created players don't have a characterId yet
+        if not playerCR.old then continue end
+
         if playerCR.new.characterId ~= playerCR.old.characterId then
             -- new character (or it was deleted)
             if not playerCR.new.characterId then

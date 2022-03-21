@@ -21,8 +21,12 @@ export type TransformType = {
 
 local COMPONENTS = {
 	Replicated = {
-		identifier = { }
+		serverId = { }
 	},
+	ServerReplicated = {
+		serverId = { }
+	},
+
 	Instance = {
 		instance = { }
 	},

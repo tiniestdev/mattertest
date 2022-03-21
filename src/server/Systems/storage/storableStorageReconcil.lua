@@ -14,49 +14,59 @@ local Set = Llama.Set
 return function(world)
     -- Listen to storable events
     for storableId, storableCR in world:queryChanged(Components.Storable) do
-        local newStorageId = storableCR.new.storageId
-        local oldStorageId = storableCR.old.storageId
 
-        if storableCR.new.doNotReconcile then
-            world:insert(storableId, storableCR.new:patch({
-                doNotReconcile = false
-            }))
-            continue
+        -- ensure we're allowed to reconcile and that new/old storageids haven't changed
+        if storableCR.old and storableCR.new then
+            local newStorageId = storableCR.new.storageId
+            local oldStorageId = storableCR.old.storageId
+
+            if storableCR.new.doNotReconcile then
+                world:insert(storableId, storableCR.new:patch({
+                    doNotReconcile = false
+                }))
+                continue
+            end
+            if newStorageId == oldStorageId then continue end
         end
-        if newStorageId == oldStorageId then continue end
 
         -- Add to the new storage.
-        if newStorageId then
-            local newStorageC = world:get(newStorageId, Components.Storage)
-            print("\tSTORAGE STATE IS: ", newStorageC.storableIds)
-            print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(newStorageC, world))
-            if storageUtil.canBeStored(storableId, newStorageId, world) then
-                world:insert(newStorageId, newStorageC:patch({
-                    storableIds = Set.add(newStorageC.storableIds, storableId),
-                    -- Weight is done by storageCapacity system
-                }))
-            else
-                warn("Could not store storable in storage. Size limits?")
-                warn("Restoring old state:", storableCR.old)
-                -- reject our own change
-                world:insert(storableId, storableCR.old)
-                continue
+        if storableCR.new then
+            local newStorageId = storableCR.new.storageId
+            if newStorageId then
+                local newStorageC = world:get(newStorageId, Components.Storage)
+                print("\tSTORAGE STATE IS: ", newStorageC.storableIds)
+                print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(newStorageC, world))
+                if storageUtil.canBeStored(storableId, newStorageId, world) then
+                    world:insert(newStorageId, newStorageC:patch({
+                        storableIds = Set.add(newStorageC.storableIds, storableId),
+                        -- Weight is done by storageCapacity system
+                    }))
+                else
+                    warn("Could not store storable in storage. Size limits?")
+                    warn("Restoring old state:", storableCR.old)
+                    -- reject our own change
+                    world:insert(storableId, storableCR.old)
+                    continue
+                end
             end
         end
 
         -- Remove from the old storage.
-        if oldStorageId then
-            local oldStorageC = world:get(oldStorageId, Components.Storage)
-            print("\tSTORAGE STATE IS: ", oldStorageC.storableIds)
-            print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(oldStorageC, world))
-            if storageUtil.canBeRemoved(storableId, oldStorageId, world) then
-                world:insert(oldStorageId, oldStorageC:patch({
-                    storableIds = Set.subtract(oldStorageC.storableIds, storableId),
-                    -- Weight is done by storageCapacity system
-                }))
-            else
-                warn("Could not remove storable from storage. Is it even in the storage?")
-                -- not really much to reject our own change since it wasn't there in the first place
+        if storableCR.old then
+            local oldStorageId = storableCR.old.storageId
+            if oldStorageId then
+                local oldStorageC = world:get(oldStorageId, Components.Storage)
+                print("\tSTORAGE STATE IS: ", oldStorageC.storableIds)
+                print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(oldStorageC, world))
+                if storageUtil.canBeRemoved(storableId, oldStorageId, world) then
+                    world:insert(oldStorageId, oldStorageC:patch({
+                        storableIds = Set.subtract(oldStorageC.storableIds, storableId),
+                        -- Weight is done by storageCapacity system
+                    }))
+                else
+                    warn("Could not remove storable from storage. Is it even in the storage?")
+                    -- not really much to reject our own change since it wasn't there in the first place
+                end
             end
         end
     end
@@ -69,15 +79,22 @@ return function(world)
         But if we attempt to do a storable -> set storageId, we will do checks.
     ]]
     for storageId, storageCR in world:queryChanged(Components.Storage) do
+
         -- Storage has changed.
-        local completelyNewSet = Set.filter(storageCR.new.storableIds, function(value)
-            return not Set.has(storageCR.old.storableIds, value)
-        end)
-        print("STORAGE ADDED THESE NEW ITEMS: ", completelyNewSet)
-        local deletedFromOldSet = Set.filter(storageCR.old.storableIds, function(value)
-            return not Set.has(storageCR.new.storableIds, value)
-        end)
-        print("STORAGE DELETED THESE ITEMS: ", deletedFromOldSet)
+        local completelyNewSet = {}
+        if storageCR.new then
+            completelyNewSet = Set.filter(storageCR.new.storableIds, function(value)
+                return not Set.has(storageCR.old.storableIds, value)
+            end)
+            print("STORAGE ADDED THESE NEW ITEMS: ", completelyNewSet)
+        end
+        local deletedFromOldSet = {}
+        if storageCR.old then
+            deletedFromOldSet = Set.filter(storageCR.old.storableIds, function(value)
+                return not Set.has(storageCR.new.storableIds, value)
+            end)
+            print("STORAGE DELETED THESE ITEMS: ", deletedFromOldSet)
+        end
 
         -- Reconcile all the storables.
         --[[
