@@ -24,11 +24,6 @@ function MatterStart:AxisPrepare()
     print("MatterStart: Axis prepare")
     MatterStart.MainLoop = Matter.Loop.new(world)
     print("MatterStart: Made Matter World + Loop")
-end
-
-function MatterStart:AxisStarted()
-    print("MatterStart: Axis started")
-
     print("MatterStart: Starting systems...")
     local systems = {}
     for _, systemModule in ipairs(script.Parent.Parent.Systems:GetDescendants()) do
@@ -43,17 +38,23 @@ function MatterStart:AxisStarted()
 
     print("MatterStart: Binding components from tags")
     MatterUtil.bindCollectionService(world)
+end
 
-    Remotes.Server:OnEvent("ClientToServer", function(player, msg)
-        print("SERVER recieved a message from player", player, msg)
-    end)
-    task.spawn(function()
-        task.wait(3)
-        print("STARTING SOME TESTS=======")
-        task.wait(1)
-        Remotes.Server:Create("ServerToClient"):SendToAllPlayers("servermessasge")
-        print("Fired event")
-    end)
+function MatterStart:AxisStarted()
+    print("MatterStart: Axis started")
+
+    -- Remotes.Server:OnEvent("ClientToServer", function(player, msg)
+    --     print("SERVER recieved a message from player", player, msg)
+    -- end)
+    -- task.spawn(function()
+    --     task.wait(3)
+    --     print("STARTING SOME TESTS=======")
+    --     for i=1,3 do
+    --         task.wait(1)
+    --         Remotes.Server:Create("ServerToClient"):SendToAllPlayers("servermessasge")
+    --         print("Fired event")
+    --     end
+    -- end)
 end
 
 return MatterStart

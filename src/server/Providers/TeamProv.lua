@@ -53,11 +53,11 @@ function TeamProv:AxisStarted()
     for teamName, teamInfo in pairs(Teams.Teams) do
         -- allianceId could potentially be nil, treat as neutral
         local teamId = world:spawn(Components.Team({
-            ["teamName"] = teamName;
-            ["allianceId"] = Teams.NameToId[teamInfo.allianceName] or Teams.NameToId["Neutral"];
-            ["playerIds"] = {};
-            ["color"] = teamInfo.color;
-            ["autoAssignable"] = teamInfo.autoAssignable;
+            teamName = teamName;
+            allianceId = Teams.NameToId[teamInfo.allianceName] or Teams.NameToId["Neutral"];
+            playerIds = {};
+            color = teamInfo.color;
+            autoAssignable = teamInfo.autoAssignable;
         }))
         Teams.NameToId[teamName] = teamId
         Teams.IdToName[teamId] = teamName
@@ -70,12 +70,13 @@ function TeamProv:AxisStarted()
         for teamId, teamC in world:query(Components.Team) do
             if teamC.allianceId == allianceId then
                 world:insert(allianceId, allianceC:patch({
-                    ["teamIds"] = Set.add(allianceC.teamIds, teamId);
+                    teamIds = Set.add(allianceC.teamIds, teamId);
                 }))
             end
         end
     end
 
+    --[[
     print("Created alliances and teams")
     -- print out each alliance name along with their ids
     for allianceId, allianceC in world:query(Components.Alliance) do
@@ -84,7 +85,7 @@ function TeamProv:AxisStarted()
     -- print out each team name along with their ids
     for teamId, teamC in world:query(Components.Team) do
         print("Team: ", teamC.teamName, teamId)
-    end
+    end]]
 end
 
 return TeamProv

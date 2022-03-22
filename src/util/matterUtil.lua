@@ -72,10 +72,7 @@ function MatterUtil.bindInstanceToComponent(instance, component, world)
     local existingId = MatterUtil.getEntityId(instance)
     if existingId then
         -- We might have a component already inserted with populated data from somewhere else.
-        if world:get(existingId, component) then
-            print("Existing component", component, " for instance ", instance, "returning")
-            return
-        end
+        if world:get(existingId, component) then return end
         -- If not, just put nothing in the component and slap it in the object
         world:insert(existingId, component())
     else
@@ -139,8 +136,10 @@ function MatterUtil.NetSignalToEvent(signalName, remotes)
             newSignal:Fire(...)
         end)
     else
-        remotes.Client:OnEvent(signalName, function(...)
-            newSignal:Fire(...)
+        remotes.Client:WaitFor(signalName):andThen(function(fromServer)
+            fromServer.instance.OnClientEvent:Connect(function(...)
+                newSignal:Fire(...)
+            end)
         end)
     end
     return newSignal

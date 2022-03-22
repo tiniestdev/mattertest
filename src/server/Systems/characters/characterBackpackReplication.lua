@@ -13,22 +13,14 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local RequestStorageEvent = MatterUtil.NetSignalToEvent("RequestStorage", Remotes)
 
 return function(world)
-    for i, player in Matter.useEvent(RequestStorageEvent, "Event") do
-        print("GOT EVENT TO UPDATDSUDJSK STORGAE")
-        
-    end
     -- Replication of character backpack/storage
-    for id, storageCR, characterC in world:queryChanged(Components.Storage, Components.Character) do
+    -- This only replicates a player's own backpack towards the player and no one else
+    for characterId, storageCR, characterC in world:queryChanged(Components.Storage, Components.Character) do
         -- does a player own this?
         local playerC = world:get(characterC.playerId, Components.Player)
         if playerC then
             local player = playerC.player
-            print("SERIALIZING STORAGE ", id)
-            print("STORAGECR:", storageCR)
-            local payload = replicationUtil.serializeStorage(id, world)
-            print("HERES THE REMOTE. DSHUIDYUIA")
-            print(Remotes.Server:Create("ReplicateStorage", payload))
-            print("SENDING PAYLOAD")
+            local payload = replicationUtil.serializeArchetype("Storage", characterId, replicationUtil.SERVERSCOPE, characterId, world)
             Remotes.Server:Create("ReplicateStorage"):SendToPlayer(player, payload)
         end
     end

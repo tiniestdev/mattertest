@@ -12,8 +12,6 @@ local Spring = Fusion.Spring
 local SidebarButton = require(script.Parent.SidebarButton)
 
 return function(props)
-    print(props.openState)
-
     local goalXO = Computed(function()
         return (props.openState:get() and 5) or -5
     end)
@@ -36,9 +34,6 @@ return function(props)
         Position = Computed(function()
             return UDim2.new(0, springXO:get(),0,0)
         end),
-        -- Position = Computed(function()
-        --     return UDim2.new(goalXS:get(), goalXO:get(), 0, 0)
-        -- end),
 
 		[Fusion.Children] = {
 			New("UISizeConstraint")({

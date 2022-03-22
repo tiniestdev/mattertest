@@ -34,8 +34,8 @@ return function(world)
             local newStorageId = storableCR.new.storageId
             if newStorageId then
                 local newStorageC = world:get(newStorageId, Components.Storage)
-                print("\tSTORAGE STATE IS: ", newStorageC.storableIds)
-                print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(newStorageC, world))
+                -- print("\tSTORAGE STATE IS: ", newStorageC.storableIds)
+                -- print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(newStorageC, world))
                 if storageUtil.canBeStored(storableId, newStorageId, world) then
                     world:insert(newStorageId, newStorageC:patch({
                         storableIds = Set.add(newStorageC.storableIds, storableId),
@@ -55,17 +55,25 @@ return function(world)
         if storableCR.old then
             local oldStorageId = storableCR.old.storageId
             if oldStorageId then
-                local oldStorageC = world:get(oldStorageId, Components.Storage)
-                print("\tSTORAGE STATE IS: ", oldStorageC.storableIds)
-                print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(oldStorageC, world))
-                if storageUtil.canBeRemoved(storableId, oldStorageId, world) then
-                    world:insert(oldStorageId, oldStorageC:patch({
-                        storableIds = Set.subtract(oldStorageC.storableIds, storableId),
-                        -- Weight is done by storageCapacity system
-                    }))
+                if world:contains(oldStorageId) then
+                    local oldStorageC = world:get(oldStorageId, Components.Storage)
+                    -- print("\tSTORAGE STATE IS: ", oldStorageC.storableIds)
+                    -- print("\tSTORAGE CAPACITY IS: ", storageUtil.getCapacity(oldStorageC, world))
+                    if storageUtil.canBeRemoved(storableId, oldStorageId, world) then
+                        world:insert(oldStorageId, oldStorageC:patch({
+                            storableIds = Set.subtract(oldStorageC.storableIds, storableId),
+                            -- Weight is done by storageCapacity system
+                        }))
+                    else
+                        warn("Could not remove storable from storage. Is it even in the storage?")
+                        -- not really much to reject our own change since it wasn't there in the first place
+                    end
                 else
-                    warn("Could not remove storable from storage. Is it even in the storage?")
-                    -- not really much to reject our own change since it wasn't there in the first place
+                    -- storage is actually completely despawned, entity does not exist
+                    -- if it's still attached to the oldStorage and never had its storageId changed, then
+                    -- it's probably being despawned by removalStorage.
+                    -- so there is no oldStorage to change. we do nothing
+                    -- print("Storage entity doesn't exist anymore")
                 end
             end
         end
@@ -84,16 +92,24 @@ return function(world)
         local completelyNewSet = {}
         if storageCR.new then
             completelyNewSet = Set.filter(storageCR.new.storableIds, function(value)
-                return not Set.has(storageCR.old.storableIds, value)
+                if storageCR.old then
+                    return not Set.has(storageCR.old.storableIds, value)
+                else
+                    return true
+                end
             end)
-            print("STORAGE ADDED THESE NEW ITEMS: ", completelyNewSet)
+            -- print("STORAGE ADDED THESE NEW ITEMS: ", completelyNewSet)
         end
         local deletedFromOldSet = {}
         if storageCR.old then
             deletedFromOldSet = Set.filter(storageCR.old.storableIds, function(value)
-                return not Set.has(storageCR.new.storableIds, value)
+                if storageCR.new then
+                    return not Set.has(storageCR.new.storableIds, value)
+                else
+                    return true
+                end
             end)
-            print("STORAGE DELETED THESE ITEMS: ", deletedFromOldSet)
+            -- print("STORAGE DELETED THESE ITEMS: ", deletedFromOldSet)
         end
 
         -- Reconcile all the storables.
@@ -105,19 +121,26 @@ return function(world)
         ]]
         for storableId, _ in pairs(completelyNewSet) do
             local storableC = world:get(storableId, Components.Storable)
+            -- print("StorableID: ", storableId, "StorableC: ", storableC)
             world:insert(storableId, storableC:patch({
                 ["storageId"] = storageId,
                 ["doNotReconcile"] = true,
             }))
-            print("INSERTED STORABLE", storableId, "IN STORAGE", storageId)
+            -- print("INSERTED STORABLE", storableId, "IN STORAGE", storageId)
         end
         for storableId, _ in pairs(deletedFromOldSet) do
-            local storableC = world:get(storableId, Components.Storable)
-            world:insert(storableId, storableC:patch({
-                ["storageId"] = Matter.None,
-                ["doNotReconcile"] = true,
-            }))
-            print("REMOVED STORABLE ", storableId, " FROM STORAGE ", storageId)
+            if world:contains(storableId) then
+                local storableC = world:get(storableId, Components.Storable)
+                world:insert(storableId, storableC:patch({
+                    ["storageId"] = Matter.None,
+                    ["doNotReconcile"] = true,
+                }))
+                -- print("REMOVED STORABLE ", storableId, " FROM STORAGE ", storageId)
+            else
+                -- the storable entity literally does not exist anymore
+                -- there is nothing to change, we can't change a deleted entity
+                -- print("Storable Entity does not exist anymore")
+            end
         end
     end
 end

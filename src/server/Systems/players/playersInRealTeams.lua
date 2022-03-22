@@ -11,9 +11,14 @@ local Teams = require(ReplicatedStorage.Teams)
 
 return function(world)
     for id, teamedCR, playerC in world:queryChanged(Components.Teamed, Components.Player) do
-        local teamId = teamedCR.new.teamId
-        local teamName = Teams.IdToName[teamId]
-        playerC.player.Team = TeamService:FindFirstChild(teamName)
+        if teamedCR.new and teamedCR.new.teamId then
+            local teamId = teamedCR.new.teamId
+            local teamName = Teams.IdToName[teamId]
+            playerC.player.Team = TeamService:FindFirstChild(teamName)
+        else
+            -- ......... no teams
+            playerC.player.Team = nil
+        end
     end
 end
 

@@ -9,8 +9,8 @@ local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 
 return function(world)
     for id, corporealCR in world:queryChanged(Components.Corporeal) do
+        if not corporealCR.new then continue end
         local thing = corporealCR.new.instance
-        print("Is ", thing, " in puragtory:", corporealCR.new.purgatory)
         if corporealCR.new.purgatory then
             thing.Parent = nil
         else

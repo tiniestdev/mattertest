@@ -3,14 +3,16 @@ local Players = game:GetService("Players")
 local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 
-local TeamChoose = require(script.Parent.TeamChoose)
+local focusOn = "Toolbar"
+
+local component = require(script.Parent:FindFirstChild(focusOn, true))
 local ClearFrame = require(script.Parent.ClearFrame)
 
 return function(target)
     local mounted = ClearFrame {
         Parent = target;
         [Fusion.Children] = {
-            TeamChoose {},
+            component {},
         }
     }
     return function()

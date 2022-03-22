@@ -1,3 +1,6 @@
+local CollectionService = game:GetService("CollectionService")
+local Teams = game:GetService("Teams")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Rx = require(ReplicatedStorage.Packages.rx)
@@ -34,6 +37,50 @@ end
 
 function playerUtil.getLeavingPlayersObservable()
     return Rx.fromSignal(Players.PlayerRemoving)
+end
+
+function playerUtil.getLeavingCharactersObservable()
+    return playerUtil.getPlayersObservable():Pipe({
+        Rx.flatMap(function(player)
+            return Rx.fromSignal(player.CharacterRemoving)
+        end)
+    })
+end
+
+function playerUtil.makePlayerEntity(player, world)
+    local Components = require(ReplicatedStorage.components)
+    local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
+    if RunService:IsServer() then
+        local id = world:spawn(
+            Components.Instance({
+                instance = player,
+            }),
+            Components.Player({
+                player = player,
+                characterId = nil,
+            }),
+            Components.Teamed({
+                teamId = nil,
+            })
+        )
+        MatterUtil.setEntityId(player, id)
+        CollectionService:AddTag(player, "Player")
+        return id
+    else
+        local id = world:spawn(
+            Components.Instance({
+                instance = player,
+            }),
+            Components.Player({
+                player = player,
+                characterId = nil,
+            }),
+            Components.Teamed({
+                teamId = nil,
+            })
+        )
+        return id
+    end
 end
 
 return playerUtil

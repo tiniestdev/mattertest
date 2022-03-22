@@ -17,7 +17,12 @@ return function(world)
     for id, playerCR in world:queryChanged(Components.Player) do
         -- Newly created players don't have a characterId yet
         if not playerCR.old then continue end
-
+        if not playerCR.new then
+            -- entire player is being deleted
+            -- this is actually handled by despawnLeavingPlayers and despawnCharacters already]
+            -- soooooo dont do anythin
+            continue
+        end
         if playerCR.new.characterId ~= playerCR.old.characterId then
             -- new character (or it was deleted)
             if not playerCR.new.characterId then

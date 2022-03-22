@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CollectionService = game:GetService("CollectionService")
@@ -6,18 +7,21 @@ local RunService = game:GetService("RunService")
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Components = require(ReplicatedStorage.components)
 local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
+local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
+local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 local MatterClient = {}
 
 MatterClient.AxisName = "MatterClientAxis"
 MatterClient.World = Matter.World.new()
 MatterClient.ServerToClientIds = {}
+local world = MatterClient.World
 
 function MatterClient:AxisPrepare()
     print("MatterClient: Axis prepare")
     MatterClient.MainLoop = Matter.Loop.new(MatterClient.World)
-    print("MatterClient: Made Matter World + Loop")
 end
 
 function MatterClient:AxisStarted()
@@ -38,16 +42,13 @@ function MatterClient:AxisStarted()
     print("MatterClient: Binding components from tags")
     MatterUtil.bindCollectionService(MatterClient.World)
 
-    Remotes.Client:WaitFor("ServerToClient"):andThen(function(msg)
-        -- play with this more. maybe this is the way to connect to server events. god what a s#### show
-        print("Client recieved a message from server", msg)
-    end)
-    task.spawn(function()
-        task.wait(1)
-        print("STARTING SOME TESTS=======")
-        task.wait(1)
-        Remotes.Client:Get("ClientToServer"):SendToServer("test")
-        print("Fired message")
+    -- make a fake dud player entity until we get real data
+    local localPlayerId = PlayerUtil.makePlayerEntity(Players.LocalPlayer, world)
+    replicationUtil.setRecipientIdScopeIdentifier(localPlayerId, Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+    Remotes.Client:WaitFor("ReplicatePlayerEntity"):andThen(function(remoteInstance)
+        remoteInstance:Connect(function(payload)
+            local playerId = replicationUtil.deserializeArchetype("Player", payload, world)
+        end)
     end)
 end
 

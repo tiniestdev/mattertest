@@ -21,7 +21,9 @@ export type TransformType = {
 
 local COMPONENTS = {
 	Replicated = {
-		serverId = { }
+		serverId = { },
+		scope = {},
+		identifier = {},
 	},
 	ServerReplicated = {
 		serverId = { }
@@ -44,7 +46,7 @@ local COMPONENTS = {
 
 	-- Applied to objects associated with a certain team or alliance.
 	Teamed = {
-
+		teamId = {},
 	},
 
 	-- Actual entities of teams and groups
@@ -82,10 +84,15 @@ local COMPONENTS = {
 	},
 
 	Tool = {
-
+		name = {},
+		droppable = {},
+		equipped = {},
+		wielder = {},
+		hotkey = {}, --CLIENT
 	},
 	Storable = {
-
+		storageId = {},
+		size = {},
 	},
 	Corporeal = {
 

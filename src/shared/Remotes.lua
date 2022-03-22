@@ -17,7 +17,8 @@ local Remotes = Net.Definitions.Create({
 
     ClientToServer = Net.Definitions.ClientToServerEvent({ }),
     ServerToClient = Net.Definitions.ServerToClientEvent({ }),
-    --ReplicateBackpack = Net.Definitions.ServerToClientEvent({ }),
+
+    ReplicatePlayerEntity = Net.Definitions.ServerToClientEvent({ }),
 })
 
 return Remotes

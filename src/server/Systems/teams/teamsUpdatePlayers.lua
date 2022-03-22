@@ -11,21 +11,25 @@ local ChangeTeamEvent = MatterUtil.NetSignalToEvent("ChangeTeam", Remotes)
 
 return function(world)
     for playerId, teamedCR, playerC in world:queryChanged(Components.Teamed, Components.Player) do
-        -- handle team its just been added to
-        local teamEntityId = teamedCR.new.teamId
-        local teamC = world:get(teamEntityId, Components.Team)
-        world:insert(teamEntityId, teamC:patch({
-            playerIds = Set.add(teamC.playerIds, playerId)
-        }))
-
-        -- handle the team that it left
-        if teamedCR.old then
-            local oldTeamEntityId = teamedCR.old.teamId
-            local oldTeamC = world:get(oldTeamEntityId, Components.Team)
-            world:insert(oldTeamEntityId, oldTeamC:patch({
-                playerIds = Set.subtract(oldTeamC.playerIds, playerId)
+        if teamedCR.new and teamedCR.new.teamId then
+            -- handle team its just been added to
+            local teamEntityId = teamedCR.new.teamId
+            local teamC = world:get(teamEntityId, Components.Team)
+            world:insert(teamEntityId, teamC:patch({
+                playerIds = Set.add(teamC.playerIds, playerId)
             }))
+
+            -- handle the team that it left
+            if teamedCR.old and teamedCR.old.teamId then
+                local oldTeamEntityId = teamedCR.old.teamId
+                local oldTeamC = world:get(oldTeamEntityId, Components.Team)
+                world:insert(oldTeamEntityId, oldTeamC:patch({
+                    playerIds = Set.subtract(oldTeamC.playerIds, playerId)
+                }))
+            else
+            end
         else
+            -- no teams........................
         end
     end
 end
