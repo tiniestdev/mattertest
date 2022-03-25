@@ -8,9 +8,16 @@ Archetypes.Catalog = {
     },
     Character = {
         "Character",
+        "Storage",
+        "Equipper",
         "Teamed",
         "Instance",
     },
+    ToolbarTool = {
+        "Equippable",
+        "Storable",
+        "Corporeal",
+    }
 }
 
 return Archetypes

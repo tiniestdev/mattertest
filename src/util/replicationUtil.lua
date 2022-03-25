@@ -59,6 +59,14 @@ end
 -- Quick serialize without regard to any possible entityIds the components have in their data (does not convert)
 function replicationUtil.serializeArchetype(archetypeName, entityId, scope, identifier, world)
     local foundMethod = serializers.SerFunctions[archetypeName] and serializers.SerFunctions[archetypeName].serialize
+
+    -- tag this entity just to indicate if this is replicated to the other side
+    replicationUtil.insertOrUpdateComponent(entityId, "Replicated", {
+        serverId = entityId,
+        scope = scope,
+        identifier = identifier,
+    }, world)
+
     if foundMethod then
         return foundMethod(entityId, scope, identifier, world, replicationUtil)
     else
@@ -67,7 +75,7 @@ function replicationUtil.serializeArchetype(archetypeName, entityId, scope, iden
 end
 
 function replicationUtil.serializeArchetypeDefault(archetypeName, entityId, scope, identifier, world)
-    local componentNames = Archetypes[archetypeName]
+    local componentNames = Archetypes.Catalog[archetypeName]
     local components = {}
 
     if componentNames then
@@ -99,10 +107,18 @@ end
 function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, world)
     local recipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
 
-    local componentNames = Archetypes[archetypeName]
+    local componentNames = Archetypes.Catalog[archetypeName]
     if componentNames then
         for _, componentName in ipairs(componentNames) do
-            replicationUtil.insertOrUpdateComponent(recipientId, componentName, payload.components[componentName], world)
+            -- The payload is not guaranteed to have all the components of
+            -- the archetype it's being represented and transmitted as.
+            -- This might be concerning because this implies an entity doesn't need all an archetype's components
+            -- to be transmitted and represented as that archetype.
+            -- oh well
+            -- I guess all an archetype means is that "you will be limited to these components if you happen to have them"
+            if payload.components[componentName] then
+                replicationUtil.insertOrUpdateComponent(recipientId, componentName, payload.components[componentName], world)
+            end
         end
     else
         -- just assume the archetypeName is the single component it's made of
@@ -115,6 +131,9 @@ end
 function replicationUtil.insertOrUpdateComponent(entityId, componentName, newData, world)
     if not world:contains(entityId) then
         error("Tried to insert or update component on entityId " .. entityId .. " which does not exist")
+    end
+    if not Components[componentName] then
+        error("Tried to insert or update component " .. componentName .. " which does not exist")
     end
     local currComponent = world:get(entityId, Components[componentName])
     if currComponent then

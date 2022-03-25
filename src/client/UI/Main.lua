@@ -2,9 +2,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 local Value = Fusion.Value
+local Computed = Fusion.Computed
 
 local TeamChoose = require(script.Parent.TeamChoose)
 local Sidebar = require(script.Parent.Sidebar)
+local Toolbar = require(script.Parent.Toolbar)
 local ClearFrame = require(script.Parent.ClearFrame)
 
 return function(props)
@@ -39,6 +41,9 @@ return function(props)
                     },
                 },
                 isOpen = false,
+            },
+            Toolbar {
+                storableProps = props.storableProps
             },
         }
     }

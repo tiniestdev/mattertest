@@ -121,7 +121,6 @@ return function(world)
         ]]
         for storableId, _ in pairs(completelyNewSet) do
             local storableC = world:get(storableId, Components.Storable)
-            -- print("StorableID: ", storableId, "StorableC: ", storableC)
             world:insert(storableId, storableC:patch({
                 ["storageId"] = storageId,
                 ["doNotReconcile"] = true,

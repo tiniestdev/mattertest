@@ -12,6 +12,7 @@ Net = "vorlias/net@2.1.4"
 rx = "nightcycle/rx@3.7.3"
 promise = "evaera/promise@4.0.0"
 llama = "freddylist/llama@1.1.1"
+signal = "sleitnick/signal@1.1.0"
 
 [server-dependencies]
 cmdr = "evaera/cmdr@1.8.4"

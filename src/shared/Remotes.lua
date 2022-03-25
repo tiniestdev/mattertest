@@ -10,15 +10,11 @@ local Remotes = Net.Definitions.Create({
     }),
     
     -- REPLICATIONS
-    RequestStorage = Net.Definitions.ClientToServerEvent({
-        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60, })
-    }),
-    ReplicateStorage = Net.Definitions.ServerToClientEvent({ }),
+    ReplicateArchetype = Net.Definitions.ServerToClientEvent({ }),
+    DespawnedEntities = Net.Definitions.ServerToClientEvent({ }),
 
     ClientToServer = Net.Definitions.ClientToServerEvent({ }),
     ServerToClient = Net.Definitions.ServerToClientEvent({ }),
-
-    ReplicatePlayerEntity = Net.Definitions.ServerToClientEvent({ }),
 })
 
 return Remotes

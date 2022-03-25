@@ -14,7 +14,6 @@ return function(world)
         local id = MatterUtil.getEntityId(char)
         if id then
             world:despawn(id)
-            print("Despawned character entity ", id)
         end
     end
 end

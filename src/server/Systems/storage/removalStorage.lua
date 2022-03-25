@@ -11,7 +11,6 @@ return function(world)
             for storableId, _ in pairs(storageCR.old.storableIds) do
                 world:despawn(storableId)
             end
-            print("Despawned storage entity ", id)
         end
     end
 end

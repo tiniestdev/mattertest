@@ -12,6 +12,7 @@ CmdrStart.AxisName = "CmdrStartAxis"
 function CmdrStart:AxisPrepare()
     Cmdr:RegisterDefaultCommands()
     Cmdr:RegisterHooksIn(script.Parent.Parent.CmdrHooks)
+    Cmdr.Registry:RegisterCommandsIn(script.Parent.Parent.CmdrCommands)
 end
 
 function CmdrStart:AxisStarted()

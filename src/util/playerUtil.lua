@@ -50,37 +50,33 @@ end
 function playerUtil.makePlayerEntity(player, world)
     local Components = require(ReplicatedStorage.components)
     local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
-    if RunService:IsServer() then
-        local id = world:spawn(
-            Components.Instance({
-                instance = player,
-            }),
-            Components.Player({
-                player = player,
-                characterId = nil,
-            }),
-            Components.Teamed({
-                teamId = nil,
-            })
-        )
-        MatterUtil.setEntityId(player, id)
-        CollectionService:AddTag(player, "Player")
-        return id
-    else
-        local id = world:spawn(
-            Components.Instance({
-                instance = player,
-            }),
-            Components.Player({
-                player = player,
-                characterId = nil,
-            }),
-            Components.Teamed({
-                teamId = nil,
-            })
-        )
-        return id
+
+    local playerEntityId = MatterUtil.getEntityId(player)
+    if not playerEntityId then
+        playerEntityId = world:spawn()
+        MatterUtil.setEntityId(player, playerEntityId)
     end
+
+    world:insert(
+        playerEntityId,
+        Components.Instance({
+            instance = player,
+        }),
+        Components.Player({
+            player = player,
+            characterId = nil,
+        }),
+        Components.Teamed({
+            teamId = nil,
+        })
+    )
+
+    if RunService:IsServer() then
+        MatterUtil.setEntityId(player, playerEntityId)
+        CollectionService:AddTag(player, "Player")
+    end
+
+    return playerEntityId
 end
 
 return playerUtil

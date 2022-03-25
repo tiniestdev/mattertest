@@ -58,19 +58,23 @@ local COMPONENTS = {
 	},
 
 	Player = {
-
+		player = {},
+		characterId = {},
 	},
 	Character = {
-
+		playerId = {},
 	},
 	Health = {
-
+		health = {},
+		maxHealth = {},
 	},
 	Storage = {
-
+		storableIds = {},
+		capacity = {},
+		maxCapacity = {},
 	},
 	Walkspeed = {
-
+		walkspeed = {},
 	},
 
 	HoldForce = {
@@ -82,20 +86,32 @@ local COMPONENTS = {
 	Holdable = {
 
 	},
+	
+	GunTool = {
 
-	Tool = {
-		name = {},
-		droppable = {},
-		equipped = {},
-		wielder = {},
+	},
+	MeleeTool = {
+
+	},
+
+	Equipper = {
+		equippableId = {},
+	},
+	Equippable = {
+		presetName = {}, -- string key to lookup in Tools
+		droppable = {}, -- can this be dropped by a player?????
+		transferrable = {}, -- can it have a new owner other than the world/player
+		equipperId = {}, -- is nil if not equipped
 		hotkey = {}, --CLIENT
 	},
-	Storable = {
+	Storable = { -- Should be able to be transferred between storages
+		displayName = {},
+		displayIcon = {},
 		storageId = {},
 		size = {},
 	},
 	Corporeal = {
-
+		instance = {},
 	}, -- does it have a physical form? (Some instances aren't corporeal)
 }
 

@@ -4,12 +4,36 @@ local Llama = require(ReplicatedStorage.Packages.llama)
 local serializers = {}
 
 serializers.SerFunctions = {
+    Character = {
+        serialize = function(entityId, scope, identifier, world, replicationUtil)
+            local payload = replicationUtil.serializeArchetypeDefault("Character", entityId, scope, identifier, world)
+
+            local StoragePayload = replicationUtil.serializeArchetype("Storage", entityId, scope, identifier, world)
+            payload.StoragePayload = StoragePayload
+            
+            return payload
+        end,
+        deserialize = function(payload, world, replicationUtil)
+            local recipientCharacterId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+            local senderPlayerId = payload.components.Character.playerId
+            local recipientPlayerId = replicationUtil.senderIdToRecipientId(payload.components.Character.playerId)
+            if not recipientPlayerId then
+                error("Player entity ".. senderPlayerId .." does not have a mapping to a clientside entity.")
+            end
+            payload.components.Character.playerId = recipientPlayerId
+        
+            replicationUtil.deserializeArchetypeDefault("Character", payload, world)
+            replicationUtil.deserializeArchetype("Storage", payload.StoragePayload, world)
+            
+            return recipientCharacterId
+        end,
+    },
     Storage = {
         serialize = function(entityId, scope, identifier, world, replicationUtil)
-            local payload = replicationUtil.serializeArchetypeDefault("Storage", entityId, scope, identifier, world, replicationUtil)
+            local payload = replicationUtil.serializeArchetypeDefault("Storage", entityId, scope, identifier, world)
             payload.StorablePayloads = {}
             for storableId, _ in pairs(payload.components.Storage.storableIds) do
-                local storablePayload = replicationUtil.serializeArchetype("Storable", storableId, scope, storableId, world, replicationUtil)
+                local storablePayload = replicationUtil.serializeArchetype("Storable", storableId, scope, storableId, world)
                 payload.StorablePayloads[storableId] = storablePayload
             end
             return payload

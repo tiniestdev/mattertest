@@ -5,49 +5,31 @@ local ToolInfos = require(ReplicatedStorage.ToolInfos)
 
 local toolUtil = {}
 
-function toolUtil.makeTool(toolName, props, world)
+function toolUtil.makePresetTool(toolName, props, world)
     local toolInfo = ToolInfos.Catalog[toolName]
+    local entityId = world:spawn()
 
-    if toolInfo.corporeal then
-        local entityId = world:spawn(
-            Components.Tool(
-                Llama.Dictionary.merge(
-                    toolInfo,
-                    props
-                )
-            ),
-            Components.Storable({
-                storableId = toolName,
-                size = toolInfo.storageSize or 1,
-            }),
-            Components.Corporeal({
-                instance = toolInfo.corporeal,
-            })
-        )
-        return entityId
-    else
-        local entityId = world:spawn(
-            Components.Tool(
-                Llama.Dictionary.merge(
-                    toolInfo,
-                    props
-                )
-            ),
-            Components.Storable({
-                storableId = toolName,
-                size = toolInfo.storageSize or 1,
-            })
-        )
-        return entityId
+    for componentName, componentProps in pairs(toolInfo) do
+        if Components[componentName] then
+            
+            local mergedProps = Llama.Dictionary.merge(componentProps, props)
+            world:insert(entityId, Components[componentName](mergedProps))
+            -- patch props
+        else
+            warn("toolUtil: Unknown component: " .. componentName)
+            warn(debug.traceback())
+        end
     end
+
+    return entityId
 end
 
 -- Makes multiple tools and returns an array of newly created entity ids.
 -- (you can't define individual properties though)
-function toolUtil.makeTools(toolNames, world)
+function toolUtil.makePresetTools(toolNames, world)
     local ids = {}
     for _, toolName in ipairs(toolNames) do
-        table.insert(ids, toolUtil.makeTool(toolName, {}, world))
+        table.insert(ids, toolUtil.makePresetTool(toolName, {}, world))
     end
     return ids
 end

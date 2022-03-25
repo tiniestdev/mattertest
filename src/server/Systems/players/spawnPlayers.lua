@@ -22,7 +22,7 @@ return function(world)
         }))
 
         local payload = replicationUtil.serializeArchetype("Player", newPlayerEntityId, player.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER, world)
-        Remotes.Server:Create("ReplicatePlayerEntity"):SendToPlayer(player, payload)
+        Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "Player", payload)
 
         -- print("Sent player payload to " .. player.Name .. ", :", payload)
         -- print("Server id of player is " .. newPlayerEntityId)

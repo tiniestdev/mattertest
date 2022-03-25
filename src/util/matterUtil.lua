@@ -69,12 +69,15 @@ function MatterUtil.setEntityId(instance, id)
 end
 
 function MatterUtil.bindInstanceToComponent(instance, component, world)
+    --[[
     local existingId = MatterUtil.getEntityId(instance)
     if existingId then
         -- We might have a component already inserted with populated data from somewhere else.
+        print("EXISTING TAGGED ", existingId)
         if world:get(existingId, component) then return end
         -- If not, just put nothing in the component and slap it in the object
         world:insert(existingId, component())
+        print("INSERTED SOME DUNSDVBASDB INTO ", existingId)
     else
         -- Brand new instance not recognized by our world.
         -- Make it an official entity of our world
@@ -98,7 +101,8 @@ function MatterUtil.bindInstanceToComponent(instance, component, world)
         -- Try not to handle instance removal from workspace since it should be lesser than
         -- our raw data world. If it gets removed from workspace for some odd reason
         -- we'll probably just recreate it to fit with our data.
-    end
+        print("HANDLED ENTITYID ATTRIBUTE FOR ", id)
+    end]]
 end
 
 --[[
@@ -110,6 +114,7 @@ end
 ]]
 function MatterUtil.bindCollectionService(world)
     -- Goes through every tagname and makes a component out of these tags
+    --[[
     for tagName, component in pairs(Components) do
         for _, instance in ipairs(CollectionService:GetTagged(tagName)) do
             MatterUtil.bindInstanceToComponent(instance, component, world)
@@ -126,7 +131,7 @@ function MatterUtil.bindCollectionService(world)
                 world:remove(entityId, component)
             end
         end)
-    end
+    end]]
 end
 
 function MatterUtil.NetSignalToEvent(signalName, remotes)
@@ -151,6 +156,27 @@ function MatterUtil.ObservableToEvent(observable)
         newSignal:Fire(...)
     end)
     return newSignal
+end
+
+function MatterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
+    if world:contains(entityId) then
+        context:Reply("EntityId " .. entityId .. ":")
+        for componentName, _ in pairs(Components) do
+            if world:get(entityId, Components[componentName]) then
+                context:Reply("Is a " .. componentName .. ":")
+                for componentField, fieldValue in pairs(world:get(entityId, Components[componentName])) do
+                    if typeof(fieldValue) == "Instance" then
+                        context:Reply("\t" .. fieldValue.ClassName .. " " .. componentField .. ": " .. fieldValue:GetFullName())
+                    else
+                        context:Reply("\t" .. typeof(fieldValue) .. " " .. componentField .. ": " .. tostring(fieldValue))
+                    end
+                end
+            end
+        end
+        return true
+    else
+        return "EntityId " .. entityId .. " does not exist in the local world."
+    end
 end
 
 return MatterUtil

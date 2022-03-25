@@ -12,6 +12,8 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 local Net = require(ReplicatedStorage.Packages.Net)
 
+local Archetypes = require(ReplicatedStorage.Archetypes)
+
 local MatterClient = {}
 
 MatterClient.AxisName = "MatterClientAxis"
@@ -45,9 +47,10 @@ function MatterClient:AxisStarted()
     -- make a fake dud player entity until we get real data
     local localPlayerId = PlayerUtil.makePlayerEntity(Players.LocalPlayer, world)
     replicationUtil.setRecipientIdScopeIdentifier(localPlayerId, Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
-    Remotes.Client:WaitFor("ReplicatePlayerEntity"):andThen(function(remoteInstance)
-        remoteInstance:Connect(function(payload)
-            local playerId = replicationUtil.deserializeArchetype("Player", payload, world)
+    Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
+        remoteInstance:Connect(function(archetypeName, payload)
+            local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
+            replicationUtil.mapSenderIdToRecipientId(payload.entityId, entityId)
         end)
     end)
 end

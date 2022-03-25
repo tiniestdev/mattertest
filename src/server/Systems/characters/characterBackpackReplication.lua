@@ -4,13 +4,13 @@ local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Net = require(ReplicatedStorage.Packages.Net)
 local Remotes = require(ReplicatedStorage.Remotes)
+local Rx = require(ReplicatedStorage.Packages.rx)
+local Llama = require(ReplicatedStorage.Packages.llama)
 
 local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local TeamUtil = require(ReplicatedStorage.Util.teamUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
-
-local RequestStorageEvent = MatterUtil.NetSignalToEvent("RequestStorage", Remotes)
 
 return function(world)
     -- Replication of character backpack/storage
@@ -20,8 +20,36 @@ return function(world)
         local playerC = world:get(characterC.playerId, Components.Player)
         if playerC then
             local player = playerC.player
-            local payload = replicationUtil.serializeArchetype("Storage", characterId, replicationUtil.SERVERSCOPE, characterId, world)
-            Remotes.Server:Create("ReplicateStorage"):SendToPlayer(player, payload)
+            local characterPayload = replicationUtil.serializeArchetype("Character", characterId, replicationUtil.SERVERSCOPE, characterId, world)
+            Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "Character", characterPayload)
+
+            local toolsInBackpack = world:get(characterId, Components.Storage).storableIds
+            
+            Rx.from(Llama.Set.toList(toolsInBackpack)):Pipe({
+                Rx.map(function(toolId)
+                    return replicationUtil.serializeArchetype(
+                        "ToolbarTool",
+                        toolId,
+                        replicationUtil.SERVERSCOPE,
+                        toolId,
+                        world
+                    )
+                end),
+            }):Subscribe(function(payload)
+                Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "ToolbarTool", payload)
+            end)
+
+            --[[
+            for storableId, _ in pairs(storageCR.new.storableIds) do
+                local toolC = world:get(storableId, Components.Equippable)
+                if toolC then
+                    local payload = replicationUtil.serializeArchetype("Storable", storableId, replicationUtil.SERVERSCOPE, storableId, world)
+                    Remotes.Server:Create("ReplicateStorable"):SendToPlayer(player, payload)
+                end
+                local corporealC = world:get(storableId, Components.Corporeal)
+                local payload = replicationUtil.serializeArchetype("Storable", storableId, replicationUtil.SERVERSCOPE, storableId, world)
+                Remotes.Server:Create("ReplicateStorable"):SendToPlayer(player, payload)
+            end]]
         end
     end
     -- Replication of player team

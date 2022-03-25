@@ -2,6 +2,7 @@ local lockedGroups = {
     DefaultUtil = true,
     DefaultAdmin = true,
     DefaultDebug = true,
+    Owner = true,
 }
 
 local admins = {
