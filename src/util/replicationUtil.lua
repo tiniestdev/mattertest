@@ -130,10 +130,12 @@ end
 
 function replicationUtil.insertOrUpdateComponent(entityId, componentName, newData, world)
     if not world:contains(entityId) then
-        error("Tried to insert or update component on entityId " .. entityId .. " which does not exist")
+        warn("Tried to insert or update component on entityId ", entityId, " which does not exist")
+        error(debug.traceback())
     end
     if not Components[componentName] then
-        error("Tried to insert or update component " .. componentName .. " which does not exist")
+        warn("Tried to insert or update component ", componentName, " which does not exist")
+        error(debug.traceback())
     end
     local currComponent = world:get(entityId, Components[componentName])
     if currComponent then

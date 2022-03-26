@@ -6,6 +6,8 @@ local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 local Value = Fusion.Value
 
+local Intercom = require(ReplicatedStorage.Intercom)
+
 return function(props)
     return New "TextButton" {
         Name = "Button",
@@ -15,11 +17,13 @@ return function(props)
         TextSize = 14,
         TextWrapped = true,
         Text = props.storableName,
+        LayoutOrder = props.order,
         BackgroundColor3 = Color3.fromRGB(56, 56, 56),
         Size = UDim2.new(1, 0, 1, 0),
         SizeConstraint = Enum.SizeConstraint.RelativeYY,
         [Fusion.OnEvent "MouseButton1Click"] = function()
-            print("Gonna equip ",props.storableId)
+            -- print("Gonna equip ",props.storableId)
+            Intercom.Get("EquipEquippable"):Fire(props.storableId)
         end,
         [Fusion.Children] = {
             New "UICorner" {

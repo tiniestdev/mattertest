@@ -11,7 +11,6 @@ function toolUtil.makePresetTool(toolName, props, world)
 
     for componentName, componentProps in pairs(toolInfo) do
         if Components[componentName] then
-            
             local mergedProps = Llama.Dictionary.merge(componentProps, props)
             world:insert(entityId, Components[componentName](mergedProps))
             -- patch props
@@ -29,7 +28,11 @@ end
 function toolUtil.makePresetTools(toolNames, world)
     local ids = {}
     for _, toolName in ipairs(toolNames) do
-        table.insert(ids, toolUtil.makePresetTool(toolName, {}, world))
+        local newToolId = toolUtil.makePresetTool(toolName, {}, world)
+        world:insert(newToolId, world:get(newToolId, Components.Storable):patch({
+            order = newToolId,
+        }))
+        table.insert(ids, newToolId)
     end
     return ids
 end

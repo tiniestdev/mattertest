@@ -22,6 +22,7 @@ return function(world)
     for _, character in Matter.useEvent(CharacterEvent, "Event") do
         local player = Players:GetPlayerFromCharacter(character)
         local playerEntityId = MatterUtil.getEntityId(player)
+        local playerC = world:get(playerEntityId, Components.Player)
 
         local startingTools = toolUtil.makePresetTools({
             "Grab",
@@ -52,6 +53,10 @@ return function(world)
             })
         )
 
+        world:insert(playerEntityId, playerC:patch({
+            characterId = charEntityId,
+        }))
+        print("Player ID " .. playerEntityId .. " has character ID " .. charEntityId)
         MatterUtil.setEntityId(character, charEntityId)
         CollectionService:AddTag(character, "Character")
     end

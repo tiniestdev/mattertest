@@ -3,6 +3,7 @@ local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
+local Llama = require(ReplicatedStorage.Packages.llama)
 
 local MatterUtil = {}
 
@@ -176,6 +177,153 @@ function MatterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
         return true
     else
         return "EntityId " .. entityId .. " does not exist in the local world."
+    end
+end
+
+function MatterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
+    -- A change in an equippable tool changes the beta(s).
+
+    -- the referenceField is camelcase; only lowercase the first letter.
+    -- For example: the component name "FruitJuices" should be "fruitJuices".
+    local alphaReferenceField = string.lower(string.sub(alphaName, 1, 1)) .. string.sub(alphaName, 2)
+    local betaReferenceField = string.lower(string.sub(betaName, 1, 1)) .. string.sub(betaName, 2)
+
+    for alphaId, alphaCR in world:queryChanged(Components[alphaName]) do
+
+        -- check for actual change and reconciliation
+        if alphaCR.old and alphaCR.new then
+            local newBetaId = alphaCR.new[betaReferenceField]
+            local oldBetaId = alphaCR.old[betaReferenceField]
+            if alphaCR.new.doNotReconcile then
+                world:insert(alphaId, alphaCR.new:patch({
+                    doNotReconcile = false
+                }))
+                continue
+            end
+            if newBetaId == oldBetaId then continue end
+        end
+
+        -- Update whatever beta component it's pointing to now
+        if alphaCR.new then
+            local newBetaId = alphaCR.new[betaReferenceField]
+            if newBetaId then
+                if world:contains(newBetaId) then
+                    local betaC = world:get(newBetaId, Components[betaName])
+                    if betaC then
+                        world:insert(newBetaId, betaC:patch({
+                            [alphaReferenceField] = alphaId,
+                            doNotReconcile = true,
+                        }))
+                        print("LINKED " .. alphaName .. ":" .. alphaId .. " TO " .. betaName .. ":" .. newBetaId)
+                    else
+                        warn("Component " .. alphaName .. "'s " .. betaReferenceField .. ":" .. newBetaId .. " does not have an " .. betaName .. " component.")
+                    end
+                else
+                    warn("Component " .. alphaName .. "'s " .. betaReferenceField .. " pointed to a non-existent entity:", newBetaId)
+                    warn("Restoring old state:", alphaCR.old)
+                    world:insert(alphaId, alphaCR.old:patch({
+                        doNotReconcile = true,
+                    }))
+                    continue
+                end
+            end
+        end
+
+        -- Update the old beta component to remove its own reference
+        if alphaCR.old then
+            local oldBetaId = alphaCR.old[betaReferenceField]
+            if oldBetaId then
+                if world:contains(oldBetaId) then
+                    local oldBetaC = world:get(oldBetaId, Components[betaName])
+                    if oldBetaC then
+                        if oldBetaC[alphaReferenceField] == alphaId then
+                            world:insert(oldBetaId, oldBetaC:patch({
+                                [alphaReferenceField] = Matter.None,
+                                doNotReconcile = true,
+                            }))
+                            print("UNLINKED " .. alphaName .. ":" .. alphaId .. " FROM " .. betaName .. ":" .. oldBetaId)
+                        else
+                            warn("Previous " .. betaName .. " component did not reference " .. alphaReferenceField .. " " .. alphaId .. ", it referenced " .. oldBetaC[alphaReferenceField])
+                            -- not really much to reject our own change since it wasn't there in the first place
+                        end
+                    else
+                        warn("Component " .. betaName .. " does not exist in entity:", oldBetaId)
+                        continue
+                    end
+                else
+                    -- beta was deleted
+                end
+            end
+        end
+    end
+
+    -- When an beta changes what it's equipping, update the alpha 
+    for betaId, betaCR in world:queryChanged(Components[betaName]) do
+
+        if betaCR.new and betaCR.old then
+            local newAlphaId = betaCR.new[alphaReferenceField]
+            local oldAlphaId = betaCR.old[alphaReferenceField]
+            if betaCR.new.doNotReconcile then
+                world:insert(betaId, betaCR.new:patch({
+                    doNotReconcile = false
+                }))
+                continue
+            end
+            if newAlphaId == oldAlphaId then continue end
+        end
+
+        -- Update the alpha component it just pointed to
+        if betaCR.new then
+            local newAlphaId = betaCR.new[alphaReferenceField]
+            if newAlphaId then
+                if world:contains(newAlphaId) then
+                    local alphaC = world:get(newAlphaId, Components[alphaName])
+                    if alphaC then
+                        world:insert(newAlphaId, alphaC:patch({
+                            [betaReferenceField] = betaId,
+                            doNotReconcile = true,
+                        }))
+                        print("LINKED " .. alphaName .. ":" .. newAlphaId .. " TO " .. betaName .. ":" .. betaId)
+                    else
+                        warn("Component " .. betaName .. "'s " .. alphaReferenceField .. ":" .. newAlphaId .. " does not have an " .. alphaName .. " component.")
+                    end
+                else
+                    warn("Component " .. betaName .. "'s " .. alphaReferenceField .. " pointed to a non-existent entity:", newAlphaId)
+                    warn("Restoring old state:", betaCR.old)
+                    world:insert(betaId, betaCR.old:patch({
+                        doNotReconcile = true,
+                    }))
+                    continue
+                end
+            end
+        end
+
+        -- Update the alpha component that it broke away from
+        if betaCR.old then
+            local oldAlphaId = betaCR.old[alphaReferenceField]
+            if oldAlphaId then
+                if world:contains(oldAlphaId) then
+                    local oldAlphaC = world:get(oldAlphaId, Components[alphaName])
+                    if oldAlphaC then
+                        if oldAlphaC[betaReferenceField] == betaId then
+                            world:insert(oldAlphaId, oldAlphaC:patch({
+                                [betaReferenceField] = Matter.None,
+                                doNotReconcile = true,
+                            }))
+                            print("UNLINKED " .. alphaName .. ":" .. betaId .. " FROM " .. betaName .. ":" .. oldAlphaId)
+                        else
+                            warn("Previous " .. alphaName .. " component did not reference " .. betaReferenceField .. " " .. betaId .. ", it referenced " .. oldAlphaC[betaReferenceField])
+                            -- not really much to reject our own change since it wasn't there in the first place
+                        end
+                    else
+                        warn("Component " .. alphaName .. " does not exist in entity:", oldAlphaId)
+                        continue
+                    end
+                else
+                    -- alpha was deleted
+                end
+            end
+        end
     end
 end
 

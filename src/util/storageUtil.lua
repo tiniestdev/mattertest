@@ -27,4 +27,10 @@ function storageUtil.canBeRemoved(storableId, storageId, world)
     return Llama.Set.has(storageC.storableIds, storableId)
 end
 
+function storageUtil.getRemovedFromOldSet(newSet, oldSet)
+    return Llama.Set.filter(oldSet, function(value)
+        return not Llama.Set.has(newSet, value)
+    end)
+end
+
 return storageUtil

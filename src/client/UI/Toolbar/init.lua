@@ -7,11 +7,16 @@ local New = Fusion.New
 local Value = Fusion.Value
 
 local Llama = require(ReplicatedStorage.Packages.llama)
+local Rx = require(ReplicatedStorage.Packages.rx)
 
 local ToolbarButton = require(script.ToolbarButton)
 
 return function(props)
+
 	local storableChildren = Fusion.Computed(function()
+		table.sort(props.storableProps, function(a, b)
+			return a.order < b.order
+		end)
 		return Fusion.ForValues(props.storableProps, function(props)
 			return ToolbarButton(props)
 		end)

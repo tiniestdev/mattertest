@@ -13,7 +13,13 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 
 return function(world)
-    for storageId, storageCR, characterC in world:queryChanged(Components.Storage, Components.Character) do
+    for storageId, storageC, characterC, oursC in world:queryChanged(Components.Storage, Components.Character, Components.Ours) do
+        print("WOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWWWWWWWWW")
+    end
+    -- for storageId, storageCR, characterC, oursC in world:queryChanged(Components.Storage, Components.Character, Components.Ours) do
+    --     print("!!!!!!!!!!!!!!!!UPDATED TOOLBAR FOR STORAGE", storageId)
+    --     Intercom.Get("UpdateToolbar"):Fire(storageId)
+        --[[
         -- check if it's *our* character
         -- print("storage got, storageId:", storageId, "storageCR:", storageCR, "characterC:", characterC)
         if not storageCR.new then continue end
@@ -25,6 +31,6 @@ return function(world)
             -- send a signal to update toolbar in fusion
             -- print("storage got 3")
             Intercom.Get("UpdateToolbar"):Fire(storageId)
-        end
-    end
+        end]]
+    -- end
 end

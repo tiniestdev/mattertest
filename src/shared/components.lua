@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Matter = require(ReplicatedStorage.Packages.matter)
 
@@ -17,6 +18,15 @@ export type PhysicsType = {
 export type TransformType = {
 	cframe: CFrame,
 	size: Vector3,
+}
+
+local CLIENTCOMPONENTS = {
+	InToolbar = {},
+	Ours = {},
+}
+
+local SERVERCOMPONENTS = {
+
 }
 
 local COMPONENTS = {
@@ -109,6 +119,7 @@ local COMPONENTS = {
 		displayIcon = {},
 		storageId = {},
 		size = {},
+		order = {},  -- integer used to sort it in a consistent way. If two storables have the same order, undefined behavior.
 	},
 	Corporeal = {
 		instance = {},
@@ -116,9 +127,22 @@ local COMPONENTS = {
 }
 
 local components = {}
+
+if RunService:IsServer() then
+	for name, info in pairs(SERVERCOMPONENTS) do
+		components[name] = Matter.component(name)
+	end
+else
+	for name, info in pairs(CLIENTCOMPONENTS) do
+		components[name] = Matter.component(name)
+	end
+end
+
 for name, info in pairs(COMPONENTS) do
 	components[name] = Matter.component(name)
 	--print("Made component of name ", name, ": ", components[name])
 end
+
+
 return components
 

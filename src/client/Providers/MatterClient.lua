@@ -12,6 +12,8 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 local Net = require(ReplicatedStorage.Packages.Net)
 
+local Intercom = require(ReplicatedStorage.Intercom)
+
 local Archetypes = require(ReplicatedStorage.Archetypes)
 
 local MatterClient = {}
@@ -19,6 +21,7 @@ local MatterClient = {}
 MatterClient.AxisName = "MatterClientAxis"
 MatterClient.World = Matter.World.new()
 MatterClient.ServerToClientIds = {}
+MatterClient.OurPlayerEntityId = nil
 local world = MatterClient.World
 
 function MatterClient:AxisPrepare()
@@ -27,6 +30,7 @@ function MatterClient:AxisPrepare()
 end
 
 function MatterClient:AxisStarted()
+
     print("MatterClient: Axis started")
 
     print("MatterClient: Starting systems...")
@@ -46,12 +50,41 @@ function MatterClient:AxisStarted()
 
     -- make a fake dud player entity until we get real data
     local localPlayerId = PlayerUtil.makePlayerEntity(Players.LocalPlayer, world)
+    MatterClient.OurPlayerEntityId = localPlayerId
     replicationUtil.setRecipientIdScopeIdentifier(localPlayerId, Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+    world:insert(localPlayerId, Components.Ours({}))
+    print("Inserted OURS component into entity id " .. localPlayerId)
     Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
         remoteInstance:Connect(function(archetypeName, payload)
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
             replicationUtil.mapSenderIdToRecipientId(payload.entityId, entityId)
+            if payload.scope == Players.LocalPlayer.UserId then
+                world:insert(entityId, Components.Ours({}))
+                print("Inserted OURS component into entity id " .. entityId)
+            end
         end)
+    end)
+
+    Intercom.Get("EquipEquippable"):Connect(function(equippableId)
+        local myCharacterId = world:get(localPlayerId, Components.Player).characterId
+        if myCharacterId then
+            local equipperC = world:get(myCharacterId, Components.Equipper)
+            if equipperC then
+                world:insert(myCharacterId, equipperC:patch({
+                    equippableId = equippableId,
+                }))
+
+                local replicatedC = world:get(equippableId, Components.Replicated)
+                if replicatedC and replicatedC.serverId then
+                    Remotes.Client:Get("RequestEquipEquippable"):SendToServer(replicatedC.serverId)
+                else
+                    warn("Equippable not replicated properly: Replicated component is ", replicatedC)
+                end
+            else
+                warn("MatterClient: Equipper component not found for character", myCharacterId)
+            end
+        end
+        print("Applied equippabel change to character", myCharacterId, "with equippable", equippableId)
     end)
 end
 
