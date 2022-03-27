@@ -53,14 +53,13 @@ function MatterClient:AxisStarted()
     MatterClient.OurPlayerEntityId = localPlayerId
     replicationUtil.setRecipientIdScopeIdentifier(localPlayerId, Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
     world:insert(localPlayerId, Components.Ours({}))
-    print("Inserted OURS component into entity id " .. localPlayerId)
+    
     Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
         remoteInstance:Connect(function(archetypeName, payload)
+            print("RECIEVED REPLICATION FOR ", archetypeName, payload)
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
-            replicationUtil.mapSenderIdToRecipientId(payload.entityId, entityId)
             if payload.scope == Players.LocalPlayer.UserId then
                 world:insert(entityId, Components.Ours({}))
-                print("Inserted OURS component into entity id " .. entityId)
             end
         end)
     end)

@@ -15,6 +15,8 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 return function(world)
     -- Replication of character backpack/storage
     -- This only replicates a player's own backpack towards the player and no one else
+
+    --[[
     for characterId, storageCR, characterC in world:queryChanged(Components.Storage, Components.Character) do
         -- does a player own this?
         local playerC = world:get(characterC.playerId, Components.Player)
@@ -38,20 +40,8 @@ return function(world)
             }):Subscribe(function(payload)
                 Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "ToolbarTool", payload)
             end)
-
-            --[[
-            for storableId, _ in pairs(storageCR.new.storableIds) do
-                local toolC = world:get(storableId, Components.Equippable)
-                if toolC then
-                    local payload = replicationUtil.serializeArchetype("Storable", storableId, replicationUtil.SERVERSCOPE, storableId, world)
-                    Remotes.Server:Create("ReplicateStorable"):SendToPlayer(player, payload)
-                end
-                local corporealC = world:get(storableId, Components.Corporeal)
-                local payload = replicationUtil.serializeArchetype("Storable", storableId, replicationUtil.SERVERSCOPE, storableId, world)
-                Remotes.Server:Create("ReplicateStorable"):SendToPlayer(player, payload)
-            end]]
         end
-    end
+    end]]
     -- Replication of player team
 
     -- Replication of stats like health or walkspeed

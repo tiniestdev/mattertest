@@ -12,6 +12,7 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local RequestEquipEquippable = MatterUtil.NetSignalToEvent("RequestEquipEquippable", Remotes)
 
 return function(world)
+    --[[
     for i, player, equippableId in Matter.useEvent(RequestEquipEquippable, "Event") do
         print("Server got request from ", player, "to equip ", equippableId)
         local playerEntityId = MatterUtil.getEntityId(player)
@@ -36,5 +37,5 @@ return function(world)
             ))
             print("Equipped ", equippableId, " to ", playerC.characterId)
         end
-    end
+    end]]
 end

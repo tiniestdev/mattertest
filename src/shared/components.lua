@@ -6,13 +6,13 @@ local ComponentInfo = require(ReplicatedStorage.ComponentInfo)
 local components = {}
 
 if RunService:IsServer() then
-	for name, info in pairs(ComponentInfo) do
+	for name, info in pairs(ComponentInfo.Catalog) do
 		if not info.CLIENTCOMPONENT then
 			components[name] = Matter.component(name)
 		end
 	end
 else
-	for name, info in pairs(ComponentInfo) do
+	for name, info in pairs(ComponentInfo.Catalog) do
 		if not info.SERVERCOMPONENT then
 			components[name] = Matter.component(name)
 		end

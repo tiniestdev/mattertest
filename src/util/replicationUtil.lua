@@ -3,9 +3,14 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.components)
+local ComponentInfo = require(ReplicatedStorage.ComponentInfo)
 local Llama = require(ReplicatedStorage.Packages.llama)
 local Archetypes = require(ReplicatedStorage.Archetypes)
 local serializers = require(ReplicatedStorage.Util.serializers)
+local Remotes = require(ReplicatedStorage.Remotes)
+
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+
 local replicationUtil = {}
 
 local SenderToRecipientIds = {} -- map to use in clientside
@@ -14,9 +19,9 @@ local EntityLookup = {}
 -- This scope is used for strictly server-owned and server-created entities that should
 -- never be expected to exist on the client.
 -- The indentifier to go with such a scope would be the server's entityId.
-replicationUtil.SERVERSCOPE = "Server_"
+replicationUtil.SERVERSCOPE = "_SERVER"
 replicationUtil.CLIENTIDENTIFIERS = {
-    PLAYER = "Player",
+    PLAYER = "_PLAYER",
 }
 
 EntityLookup.__index = function(tab, key)
@@ -37,7 +42,7 @@ setmetatable(EntityLookup, EntityLookup)
         entityId = server-side entity id
         scope = scope of the entity
         identifier = identifier of the entity
-        archetypes = {} SET of archetype names it's supposed to represent
+        archetypeSet = {} SET of archetype names it's supposed to represent
         components = {
             [componentName] = {
                 [key] = value
@@ -45,11 +50,19 @@ setmetatable(EntityLookup, EntityLookup)
         }
     }
 ]]
-function replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
-    return replicationUtil.getOrCreateReplicatedEntity(payload.entityId, payload.scope, payload.identifier, payload.archetypes, world)
+
+function replicationUtil.getOrCreateReplicatedEntity(serverId, archetypeSet, world)
+    local recipientId = replicationUtil.senderIdToRecipientId(serverId)
+    return recipientId or replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId, replicationUtil.SERVERSCOPE, serverId, archetypeSet, world)
 end
-function replicationUtil.getOrCreateReplicatedEntity(serverId, scope, identifier, archetypeNamesSet, world)
+
+function replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+    return replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(payload.entityId, payload.scope, payload.identifier, payload.archetypeSet, world)
+end
+
+function replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId, scope, identifier, archetypeNamesSet, world)
     local recipientId = replicationUtil.getRecipientIdFromScopeIdentifier(scope, identifier)
+
     if not recipientId then
         recipientId = world:spawn(
             Components.Replicated({
@@ -57,16 +70,17 @@ function replicationUtil.getOrCreateReplicatedEntity(serverId, scope, identifier
                 scope = scope,
                 identifier = identifier,
             }),
-            Components.EmptyEntity({
-                archetypes = archetypeNamesSet,
+            Components.CheckArchetypes({
+                archetypeSet = archetypeNamesSet,
             })
         )
         replicationUtil.setRecipientIdScopeIdentifier(recipientId, scope, identifier)
         replicationUtil.mapSenderIdToRecipientId(serverId, recipientId)
     else
         -- ensure it has a replicated component (might exist without one)
-        local emptyC = world:get(recipientId, Components.EmptyEntity)
-        local archetypeSet = emptyC and emptyC.archetypes or {}
+        -- check that it has the right archetypes
+        local checkC = world:get(recipientId, Components.CheckArchetypes)
+        local archetypeSet = checkC and checkC.archetypeSet or {}
         archetypeSet = Llama.Set.union(archetypeSet, archetypeNamesSet)
 
         world:insert(recipientId,
@@ -75,8 +89,8 @@ function replicationUtil.getOrCreateReplicatedEntity(serverId, scope, identifier
                 scope = scope,
                 identifier = identifier,
             }),
-            Components.EmptyEntity({
-                archetypes = archetypeSet,
+            Components.CheckArchetypes({
+                archetypeSet = archetypeSet,
             })
         )
     end
@@ -103,23 +117,18 @@ end
 
 -- Quick serialize without regard to any possible entityIds the components have in their data (does not convert)
 function replicationUtil.serializeArchetypeDefault(archetypeName, entityId, scope, identifier, world)
-    local componentNames = Archetypes.Catalog[archetypeName]
+    local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
     local components = {}
 
-    if componentNames then
-        for _, componentName in ipairs(componentNames) do
-            components[componentName] = world:get(entityId, Components[componentName])
-        end
-    else
-        -- just assume the archetypeName is the single component it's made of
-        components[archetypeName] = world:get(entityId, Components[archetypeName])
+    for componentName, _ in pairs(componentSet) do
+        components[componentName] = world:get(entityId, Components[componentName])
     end
 
     return {
         entityId = entityId,
         scope = scope,
         identifier = identifier,
-        archetypes = Llama.Set.fromList({archetypeName}),
+        archetypeSet = Llama.Set.fromList({archetypeName}),
         components = components,
     }
 end
@@ -134,27 +143,87 @@ function replicationUtil.deserializeArchetype(archetypeName, payload, world)
 end
 
 function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, world)
-    local recipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+    -- Get information about the entities we're going to have to construct or find
+    local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+    local serverEntitiesInfos = matterUtil.getServerEntityArchetypesOfReferences(payload)
 
-    local componentNames = Archetypes.Catalog[archetypeName]
-    if componentNames then
-        for _, componentName in ipairs(componentNames) do
-            -- The payload is not guaranteed to have all the components of
-            -- the archetype it's being represented and transmitted as.
-            -- This might be concerning because this implies an entity doesn't need all an archetype's components
-            -- to be transmitted and represented as that archetype.
-            -- oh well
-            -- I guess all an archetype means is that "you will be limited to these components if you happen to have them"
-            if payload.components[componentName] then
-                replicationUtil.insertOrUpdateComponent(recipientId, componentName, payload.components[componentName], world)
-            end
+        -- CONSTRUCT SHELLS
+    -- main entity, don't populate it yet because remapping must happen before that
+    -- ...and remapping is all the way down there so we'll wait
+    local mainRecipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+    replicationUtil.mapSenderIdToRecipientId(payload.entityId, mainRecipientId)
+    replicationUtil.setRecipientIdScopeIdentifier(mainRecipientId, payload.scope, payload.identifier)
+    -- secondary entities
+    for _, entityInfo in ipairs(serverEntitiesInfos) do
+        local serverId = entityInfo.entityId
+        local secondaryEntityRecipientId = replicationUtil.getOrCreateReplicatedEntity(serverId, Llama.Set.fromList({entityInfo.archetype}), world)
+        replicationUtil.mapSenderIdToRecipientId(serverId, secondaryEntityRecipientId)
+
+--[[
+
+
+
+
+
+I GIVE UP F##############
+FIND OUT WHY IT KEEPS MAKING NEW ENTITIES ANDJAINS FIOHBFIUWE ITS ONT LIKE WE'RE GETETING
+REPLCIATE DDTATTDATDT^AT^DT^&SAFGYDTUSYDGOGSDUYIS
+
+
+
+
+
+]]
+
+
+
+        -- idk how we'd handle scope and identifier below
+        -- replicationUtil.setRecipientIdScopeIdentifier(secondaryEntityRecipientId, payload.scope, payload.identifier)
+        -- ADD CHECKARCHETYPE COMPONENTS
+        local existingCheckC = world:get(secondaryEntityRecipientId, Components.CheckArchetypes)
+        local existingArchetypeSet = existingCheckC and existingCheckC.archetypeSet or {}
+        if existingCheckC then
+            world:insert(secondaryEntityRecipientId, existingCheckC:patch({
+                archetypeSet = existingArchetypeSet,
+            }))
+        else
+            world:insert(secondaryEntityRecipientId, Components.CheckArchetypes({
+                archetypeSet = existingArchetypeSet,
+            }))
         end
-    else
-        -- just assume the archetypeName is the single component it's made of
-        replicationUtil.insertOrUpdateComponent(recipientId, archetypeName, payload.components[archetypeName], world)
     end
 
-    return recipientId
+        -- REMAPPING OF PROPERTIES
+    local oldComponentsData = payload.components
+    local remappedComponentsData = {}
+
+    for componentName, _ in pairs(componentSet) do
+        local payloadComponentData = oldComponentsData[componentName]
+        if not payloadComponentData then continue end
+
+        local refProps = matterUtil.getReferencePropertiesOfComponent(componentName, payloadComponentData)
+        local refSetProps = matterUtil.getReferenceSetPropertiesOfComponent(componentName, payloadComponentData)
+        local updatedProps = {}
+        for _, refPropName in ipairs(refProps) do
+            updatedProps[refPropName] = replicationUtil.senderIdToRecipientId(payloadComponentData[refPropName])
+        end
+        for _, refSetPropName in ipairs(refSetProps) do
+            local newRefSet = {}
+            for refId, _ in pairs(payloadComponentData[refSetPropName]) do
+                newRefSet[replicationUtil.senderIdToRecipientId(refId)] = true
+            end
+            updatedProps[refSetPropName] = newRefSet
+        end
+
+        remappedComponentsData[componentName] = Llama.Dictionary.merge(payloadComponentData, updatedProps)
+    end
+
+    -- Now apply the remapped component data and hydrate em all up
+    for componentName, componentData in pairs(remappedComponentsData) do
+        replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+    end
+
+    return mainRecipientId
 end
 
 function replicationUtil.insertOrUpdateComponent(entityId, componentName, newData, world)
@@ -205,6 +274,17 @@ end
 function replicationUtil.getLocalPlayerEntityId()
     if RunService:IsServer() then error("Cannot get local player entity id on server") end
     return replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+end
+
+function replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world)
+    local payload = replicationUtil.serializeArchetype(archetypeName, entityId, replicationUtil.SERVERSCOPE, entityId, world)
+    print("serialized: ", payload)
+    Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, archetypeName, payload)
+end
+
+function replicationUtil.replicateOwnPlayer(player, playerEntityId, world)
+    local payload = replicationUtil.serializeArchetype("PlayerArchetype", playerEntityId, player.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER, world)
+    Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "Player", payload)
 end
 
 return replicationUtil

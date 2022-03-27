@@ -26,7 +26,7 @@ ComponentInfo.Catalog = {
 	Ours = {
         CLIENTCOMPONENT = true;
     },
-	CheckArchetype = {
+	CheckArchetypes = {
         CLIENTCOMPONENT = true;
         archetypeSet = {};
     },
