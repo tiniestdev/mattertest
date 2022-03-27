@@ -1,12 +1,12 @@
 local Archetypes = {}
 
 Archetypes.Catalog = {
-    Player = {
+    PlayerArchetype = {
         "Player",
         "Teamed",
         "Instance",
     },
-    Character = {
+    CharacterArchetype = {
         "Character",
         "Storage",
         "Equipper",

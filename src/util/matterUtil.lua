@@ -4,6 +4,7 @@ local CollectionService = game:GetService("CollectionService")
 local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Llama = require(ReplicatedStorage.Packages.llama)
+local Archetypes = require(ReplicatedStorage.Archetypes)
 
 local MatterUtil = {}
 
@@ -177,6 +178,20 @@ function MatterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
         return true
     else
         return "EntityId " .. entityId .. " does not exist in the local world."
+    end
+end
+
+function MatterUtil.isArchetype(entityId, archetypeName, world)
+    local componentsToCheck = Archetypes.Catalog[archetypeName]
+    if componentsToCheck then
+        for _, componentName in ipairs(componentsToCheck) do
+            if not world:get(entityId, Components[componentName]) then
+                return false
+            end
+        end
+        return true
+    else
+        return world:get(entityId, Components[archetypeName]) ~= nil
     end
 end
 

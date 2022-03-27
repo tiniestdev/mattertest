@@ -12,6 +12,7 @@ local Definitions = {
     RequestEquipEquippable = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 120, })
     }),
+    RequestReplicateArchetype = Net.Definitions.ServerAsyncFunction({}),
     
     -- REPLICATIONS
     ReplicateArchetype = Net.Definitions.ServerToClientEvent({ }),

@@ -7,6 +7,7 @@ local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local TeamUtil = require(ReplicatedStorage.Util.teamUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
+local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 
 local RequestEquipEquippable = MatterUtil.NetSignalToEvent("RequestEquipEquippable", Remotes)
 
@@ -26,6 +27,13 @@ return function(world)
             world:insert(characterId, equipperC:patch({
                 equippableId = equippableId,
             }))
+            Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "Equippable", replicationUtil.serializeArchetype(
+                "ToolbarTool",
+                equippableId,
+                replicationUtil.SERVERSCOPE,
+                equippableId,
+                world
+            ))
             print("Equipped ", equippableId, " to ", playerC.characterId)
         end
     end
