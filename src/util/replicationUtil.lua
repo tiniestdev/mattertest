@@ -52,8 +52,7 @@ setmetatable(EntityLookup, EntityLookup)
 ]]
 
 function replicationUtil.getOrCreateReplicatedEntity(serverId, archetypeSet, world)
-    local recipientId = replicationUtil.senderIdToRecipientId(serverId)
-    return recipientId or replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId, replicationUtil.SERVERSCOPE, serverId, archetypeSet, world)
+    return replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId, replicationUtil.SERVERSCOPE, serverId, archetypeSet, world)
 end
 
 function replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
@@ -61,9 +60,16 @@ function replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
 end
 
 function replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId, scope, identifier, archetypeNamesSet, world)
-    local recipientId = replicationUtil.getRecipientIdFromScopeIdentifier(scope, identifier)
+    local recipientId = replicationUtil.senderIdToRecipientId(serverId) or replicationUtil.getRecipientIdFromScopeIdentifier(scope, identifier)
 
-    if not recipientId then
+    if recipientId == nil then
+        print("RECIPIENT ID: ", recipientId)
+        print("There is no entity in local space that has a server id of ", serverId)
+        print(SenderToRecipientIds)
+        print(serverId)
+        print(tostring(serverId))
+        print(SenderToRecipientIds[serverId])
+        print(SenderToRecipientIds[tostring(serverId)])
         recipientId = world:spawn(
             Components.Replicated({
                 serverId = serverId,
@@ -74,9 +80,8 @@ function replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId
                 archetypeSet = archetypeNamesSet,
             })
         )
-        replicationUtil.setRecipientIdScopeIdentifier(recipientId, scope, identifier)
-        replicationUtil.mapSenderIdToRecipientId(serverId, recipientId)
     else
+        print("There EXISTS an entity in local space that has a server id of ", serverId, "mapped to", recipientId)
         -- ensure it has a replicated component (might exist without one)
         -- check that it has the right archetypes
         local checkC = world:get(recipientId, Components.CheckArchetypes)
@@ -94,6 +99,10 @@ function replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId
             })
         )
     end
+
+    replicationUtil.setRecipientIdScopeIdentifier(recipientId, scope, identifier)
+    replicationUtil.mapSenderIdToRecipientId(serverId, recipientId)
+    print("Returning recipientId", recipientId)
 
     return recipientId
 end
@@ -145,6 +154,8 @@ end
 function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, world)
     -- Get information about the entities we're going to have to construct or find
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+    print("deserializing archetype " .. archetypeName)
+    print("component set is ", componentSet)
     local serverEntitiesInfos = matterUtil.getServerEntityArchetypesOfReferences(payload)
 
         -- CONSTRUCT SHELLS
@@ -158,25 +169,6 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         local serverId = entityInfo.entityId
         local secondaryEntityRecipientId = replicationUtil.getOrCreateReplicatedEntity(serverId, Llama.Set.fromList({entityInfo.archetype}), world)
         replicationUtil.mapSenderIdToRecipientId(serverId, secondaryEntityRecipientId)
-
---[[
-
-
-
-
-
-I GIVE UP F##############
-FIND OUT WHY IT KEEPS MAKING NEW ENTITIES ANDJAINS FIOHBFIUWE ITS ONT LIKE WE'RE GETETING
-REPLCIATE DDTATTDATDT^AT^DT^&SAFGYDTUSYDGOGSDUYIS
-
-
-
-
-
-]]
-
-
-
         -- idk how we'd handle scope and identifier below
         -- replicationUtil.setRecipientIdScopeIdentifier(secondaryEntityRecipientId, payload.scope, payload.identifier)
         -- ADD CHECKARCHETYPE COMPONENTS
@@ -196,9 +188,11 @@ REPLCIATE DDTATTDATDT^AT^DT^&SAFGYDTUSYDGOGSDUYIS
         -- REMAPPING OF PROPERTIES
     local oldComponentsData = payload.components
     local remappedComponentsData = {}
-
+    print("payload: ", payload)
+    print("component set: ", componentSet)
     for componentName, _ in pairs(componentSet) do
         local payloadComponentData = oldComponentsData[componentName]
+        print("payloadComponentData", componentName, payloadComponentData)
         if not payloadComponentData then continue end
 
         local refProps = matterUtil.getReferencePropertiesOfComponent(componentName, payloadComponentData)
@@ -206,11 +200,13 @@ REPLCIATE DDTATTDATDT^AT^DT^&SAFGYDTUSYDGOGSDUYIS
         local updatedProps = {}
         for _, refPropName in ipairs(refProps) do
             updatedProps[refPropName] = replicationUtil.senderIdToRecipientId(payloadComponentData[refPropName])
+            print("Remapped ID of ", refPropName, payloadComponentData[refPropName], " to ", updatedProps[refPropName])
         end
         for _, refSetPropName in ipairs(refSetProps) do
             local newRefSet = {}
             for refId, _ in pairs(payloadComponentData[refSetPropName]) do
                 newRefSet[replicationUtil.senderIdToRecipientId(refId)] = true
+                print("Remapped ID of ", refSetPropName, refId, " to ", replicationUtil.senderIdToRecipientId(refId))
             end
             updatedProps[refSetPropName] = newRefSet
         end
@@ -249,11 +245,11 @@ end
 -- Sender is from the other side
 -- Recipient is from your side
 function replicationUtil.getRecipientIdFromScopeIdentifier(scope, identifier)
-    return EntityLookup[scope][identifier]
+    return EntityLookup[scope][tostring(identifier)]
 end
 
 function replicationUtil.setRecipientIdScopeIdentifier(recipientId, scope, identifier)
-    EntityLookup[scope][identifier] = recipientId
+    EntityLookup[scope][tostring(identifier)] = recipientId
 end
 
 function replicationUtil.getScopeIdentifierFromRecipientId(recipientId, world)
@@ -264,11 +260,11 @@ end
 -- used for entityId field relationships
 -- actual entity referencing in replication uses the above functions
 function replicationUtil.senderIdToRecipientId(senderId)
-    return SenderToRecipientIds[senderId]
+    return SenderToRecipientIds[tostring(senderId)]
 end
 
 function replicationUtil.mapSenderIdToRecipientId(senderId, recipientId)
-    SenderToRecipientIds[senderId] = recipientId
+    SenderToRecipientIds[tostring(senderId)] = recipientId
 end
 
 function replicationUtil.getLocalPlayerEntityId()
@@ -278,13 +274,13 @@ end
 
 function replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world)
     local payload = replicationUtil.serializeArchetype(archetypeName, entityId, replicationUtil.SERVERSCOPE, entityId, world)
-    print("serialized: ", payload)
+    print("ReplicationUtil: Sent payload ", payload)
     Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, archetypeName, payload)
 end
 
 function replicationUtil.replicateOwnPlayer(player, playerEntityId, world)
     local payload = replicationUtil.serializeArchetype("PlayerArchetype", playerEntityId, player.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER, world)
-    Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "Player", payload)
+    Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "PlayerArchetype", payload)
 end
 
 return replicationUtil

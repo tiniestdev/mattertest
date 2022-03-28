@@ -118,7 +118,13 @@ function matterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
                     if typeof(fieldValue) == "Instance" then
                         context:Reply("\t" .. fieldValue.ClassName .. " " .. componentField .. ": " .. fieldValue:GetFullName())
                     else
-                        context:Reply("\t" .. typeof(fieldValue) .. " " .. componentField .. ": " .. tostring(fieldValue))
+                        if typeof(fieldValue) == "table" then
+                            for i,v in pairs(fieldValue) do
+                                context:Reply("\t\t" .. tostring(i) .. " : " .. tostring(v))
+                            end
+                        else
+                            context:Reply("\t" .. typeof(fieldValue) .. " " .. componentField .. ": " .. tostring(fieldValue))
+                        end
                     end
                 end
             end
@@ -142,12 +148,14 @@ end
 function matterUtil.getComponentSetFromArchetype(archetypeName)
     local archetypesToCheck = Archetypes.Catalog[archetypeName]
     if archetypesToCheck then
+        print("Archetypes to check:", archetypesToCheck)
         local componentNameSet = {}
         for _, subArchetypeName in ipairs(archetypesToCheck) do
             componentNameSet = Llama.Set.union(componentNameSet, matterUtil.getComponentSetFromArchetype(subArchetypeName))
         end
         return componentNameSet
     else
+        print("Archetypes to check:", archetypeName)
         return Llama.Set.fromList({ archetypeName })
     end
 end

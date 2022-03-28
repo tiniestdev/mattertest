@@ -25,15 +25,15 @@ MatterClient.OurPlayerEntityId = nil
 local world = MatterClient.World
 
 function MatterClient:AxisPrepare()
-    print("MatterClient: Axis prepare")
+    -- print("MatterClient: Axis prepare")
     MatterClient.MainLoop = Matter.Loop.new(MatterClient.World)
 end
 
 function MatterClient:AxisStarted()
 
-    print("MatterClient: Axis started")
+    -- print("MatterClient: Axis started")
 
-    print("MatterClient: Starting systems...")
+    -- print("MatterClient: Starting systems...")
     local systems = {}
     for _, systemModule in ipairs(script.Parent.Parent.Systems:GetDescendants()) do
         if systemModule:IsA("ModuleScript") then
@@ -41,11 +41,11 @@ function MatterClient:AxisStarted()
         end
     end
 
-    print("MatterClient: Scheduling systems")
+    -- print("MatterClient: Scheduling systems")
     MatterClient.MainLoop:scheduleSystems(systems)
     MatterClient.MainLoop:begin({ default = RunService.Stepped})
 
-    print("MatterClient: Binding components from tags")
+    -- print("MatterClient: Binding components from tags")
     MatterUtil.bindCollectionService(MatterClient.World)
 
     -- make a fake dud player entity until we get real data
@@ -56,7 +56,7 @@ function MatterClient:AxisStarted()
     
     Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
         remoteInstance:Connect(function(archetypeName, payload)
-            print("RECIEVED REPLICATION FOR ", archetypeName, payload)
+            print("GOT REPLICATION FOR ", archetypeName, payload)
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
             if payload.scope == Players.LocalPlayer.UserId then
                 world:insert(entityId, Components.Ours({}))

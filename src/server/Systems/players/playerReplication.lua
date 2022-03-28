@@ -11,12 +11,14 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 
 return function(world)
     for playerId, playerCR in world:queryChanged(Components.Player) do
-        local playerC = playerCR.new
-        if playerC.player then
-            replicationUtil.replicateOwnPlayer(playerC.player, playerId, world)
-            print("Replicated player changes to ", playerC.player)
-        else
-            warn("Player component has no actual player: ", playerC, playerId)
+        if playerCR.new then
+            local playerC = playerCR.new
+            if playerC.player then
+                replicationUtil.replicateOwnPlayer(playerC.player, playerId, world)
+                print("QueryChanged: sending player changes to ", playerC.player)
+            else
+                warn("Player component has no actual player: ", playerC, playerId)
+            end
         end
     end
 end

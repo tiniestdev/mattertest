@@ -10,11 +10,11 @@ local ResetLogic = {}
 ResetLogic.AxisName = "ResetLogicAxis"
 
 function ResetLogic:AxisPrepare()
-    print("ResetLogic: Axis prepare")
+    -- print("ResetLogic: Axis prepare")
 end
 
 function ResetLogic:AxisStarted()
-    print("ResetLogic: Axis started")
+    -- print("ResetLogic: Axis started")
 
     local resetBindable = Instance.new("BindableEvent")
     resetBindable.Event:Connect(function()

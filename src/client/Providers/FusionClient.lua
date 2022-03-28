@@ -16,11 +16,11 @@ local FusionClient = {}
 FusionClient.AxisName = "FusionClientAxis"
 
 function FusionClient:AxisPrepare()
-    print("FusionClient: Axis prepare")
+    -- print("FusionClient: Axis prepare")
 end
 
 function FusionClient:AxisStarted()
-    print("FusionClient: Axis started")
+    -- print("FusionClient: Axis started")
 
     local storableProps = Fusion.Value({})
     Intercom.Get("UpdateToolbar"):Connect(function(charStorageId)

@@ -10,12 +10,12 @@ local CmdrClient = {}
 CmdrClient.AxisName = "CmdrClientAxis"
 
 function CmdrClient:AxisPrepare()
-    print("CmdrClient: Axis prepare")
+    -- print("CmdrClient: Axis prepare")
     Cmdr:SetActivationKeys({ Enum.KeyCode.Semicolon })
 end
 
 function CmdrClient:AxisStarted()
-    print("CmdrClient: Axis started")
+    -- print("CmdrClient: Axis started")
 end
 
 return CmdrClient

@@ -25,7 +25,7 @@ return function(world)
             end
             if #missingArchetypes > 0 then
                 table.insert(emptyEntitiesData, {
-                    serverId = id,
+                    serverId = replicatedC.serverId,
                     missingArchetypes = missingArchetypes,
                 })
                 print("..ENTITY ", id, "MISSING ARCHETYPES:")

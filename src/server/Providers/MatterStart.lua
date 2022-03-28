@@ -22,10 +22,10 @@ MatterStart.World = Matter.World.new()
 local world = MatterStart.World
 
 function MatterStart:AxisPrepare()
-    print("MatterStart: Axis prepare")
+    -- print("MatterStart: Axis prepare")
     MatterStart.MainLoop = Matter.Loop.new(world)
-    print("MatterStart: Made Matter World + Loop")
-    print("MatterStart: Starting systems...")
+    -- print("MatterStart: Made Matter World + Loop")
+    -- print("MatterStart: Starting systems...")
     local systems = {}
     for _, systemModule in ipairs(script.Parent.Parent.Systems:GetDescendants()) do
         if systemModule:IsA("ModuleScript") then
@@ -33,22 +33,22 @@ function MatterStart:AxisPrepare()
         end
     end
 
-    print("MatterStart: Scheduling systems")
+    -- print("MatterStart: Scheduling systems")
     MatterStart.MainLoop:scheduleSystems(systems)
     MatterStart.MainLoop:begin({ default = RunService.Heartbeat })
 
-    print("MatterStart: Binding components from tags")
+    -- print("MatterStart: Binding components from tags")
     matterUtil.bindCollectionService(world)
 end
 
 function MatterStart:AxisStarted()
-    print("MatterStart: Axis started")
+    -- print("MatterStart: Axis started")
 
     Remotes.Server:OnFunction("RequestReplicateArchetype", function(player, request)
         local response = {}
 
         for _, entityInfo in ipairs(request) do
-            print("GONNA REPLICATE ",entityInfo)
+            print("Got request to replicate entity ", entityInfo.serverId, entityInfo)
             local serverId = entityInfo.serverId
             -- local entityResponseInfo = {
             --     serverId = serverId,
