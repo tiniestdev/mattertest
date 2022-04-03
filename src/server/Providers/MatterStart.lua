@@ -21,6 +21,8 @@ MatterStart.AxisName = "MatterStartAxis"
 MatterStart.World = Matter.World.new()
 local world = MatterStart.World
 
+local RDM = Random.new()
+
 function MatterStart:AxisPrepare()
     -- print("MatterStart: Axis prepare")
     MatterStart.MainLoop = Matter.Loop.new(world)
@@ -46,31 +48,37 @@ function MatterStart:AxisStarted()
 
     Remotes.Server:OnFunction("RequestReplicateArchetype", function(player, request)
         local response = {}
-
         for _, entityInfo in ipairs(request) do
-            print("Got request to replicate entity ", entityInfo.serverId, entityInfo)
-            local serverId = entityInfo.serverId
-            -- local entityResponseInfo = {
-            --     serverId = serverId,
-            --     components = {},
-            -- }
+            -- print("Got request to replicate entity ", entityInfo.serverId, entityInfo)
+            local serverId = tonumber(entityInfo.serverId)
             local missingArchetypes = entityInfo.missingArchetypes
 
             local totalComponentSet = {}
             for _, archetypeName in ipairs(missingArchetypes) do
-                -- local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
-                -- totalComponentSet = Llama.Set.union(totalComponentSet, componentSet)
                 replicationUtil.replicateServerEntityArchetypeTo(player, serverId, archetypeName, world)
             end
-
-            -- for componentName, _ in pairs(totalComponentSet) do
-            --     entityResponseInfo.components[componentName] = world:get(serverId, componentName)
-            -- end
-
-            -- table.insert(response, entityResponseInfo)
         end
+        return true
+    end)
+    Remotes.Server:OnFunction("RequestEquipEquippable", function(player, equipId)
+        -- print("REQUESTING EQUIP ID ", equipId, " FOR ", player.Name)
+        local equipperId = matterUtil.getCharacterIdOfPlayer(player, world)
+        local equipperC = world:get(equipperId, Components.Equipper)
 
-        return true -- duhhh dopoyyyyy
+        -- validity check
+        if true then
+            world:insert(equipperId, equipperC:patch({
+                equippableId = equipId,
+            }))
+            -- print("Changed serverside to equip id ", world:get(equipperId, Components.Equipper).equippableId)
+            return true
+        else
+            -- print("Reject change")
+            world:insert(equipperId, equipperC:patch({
+                equippableId = nil,
+            }))
+            return false
+        end
     end)
     -- Remotes.Server:OnEvent("ClientToServer", function(player, msg)
     --     print("SERVER recieved a message from player", player, msg)

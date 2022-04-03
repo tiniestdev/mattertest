@@ -12,13 +12,29 @@ return function(props)
     return New "TextButton" {
         Name = "Button",
         Font = Enum.Font.GothamSemibold,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = Fusion.Computed(function()
+            local equippedValue = Intercom.GetFusionValue("EquippedId")
+            -- print("COMPUTED BUTTON. EQUIPPED: ", equippedValue:get())
+            if equippedValue:get() == props.storableId then
+                return Color3.fromRGB(0, 125, 192)
+            else
+                return Color3.fromRGB(255, 255, 255)
+            end
+        end),
         TextScaled = true,
         TextSize = 14,
         TextWrapped = true,
         Text = props.storableName,
         LayoutOrder = props.order,
-        BackgroundColor3 = Color3.fromRGB(56, 56, 56),
+        BackgroundColor3 = Fusion.Computed(function()
+            local equippedValue = Intercom.GetFusionValue("EquippedId")
+            -- print("COMPUTED BUTTON. EQUIPPED: ", equippedValue:get())
+            if equippedValue:get() == props.storableId then
+                return Color3.fromRGB(224, 244, 255)
+            else
+                return Color3.fromRGB(56, 56, 56)
+            end
+        end),
         Size = UDim2.new(1, 0, 1, 0),
         SizeConstraint = Enum.SizeConstraint.RelativeYY,
         [Fusion.OnEvent "MouseButton1Click"] = function()

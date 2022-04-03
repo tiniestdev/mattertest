@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.components)
 local Intercom = require(ReplicatedStorage.Intercom)
-local MatterClient = require(Players.LocalPlayer:FindFirstChild("MatterClient", true))
 
 local uiUtil = {}
 
@@ -22,6 +21,8 @@ function uiUtil.storableToFusionProps(storableId, world)
         storableName = storableC.displayName
     end
 
+    -- print("StorableName for ", storableId, ": ", storableName)
+    -- print(corporealC, equippableC, storableC)
     return {
         storableName = storableName,
         storableId = storableId,
@@ -41,6 +42,7 @@ function uiUtil.getStorablePropsFromStorage(storageId, world)
 end
 
 function uiUtil.fireUpdateToolbarSignal(world)
+    local MatterClient = require(Players.LocalPlayer:FindFirstChild("MatterClient", true))
     local ourPlayerId = MatterClient.OurPlayerEntityId
     local ourCharacterId = world:get(ourPlayerId, Components.Player).characterId
     Intercom.Get("UpdateToolbar"):Fire(ourCharacterId)

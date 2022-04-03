@@ -30,6 +30,10 @@ ComponentInfo.Catalog = {
         CLIENTCOMPONENT = true;
         archetypeSet = {};
     },
+	ShowMatterDebug = {
+		CLIENTCOMPONENT = true;
+		adornee = {};
+	},
 
 
     -- SHARED COMPONENTS

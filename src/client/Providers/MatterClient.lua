@@ -56,7 +56,7 @@ function MatterClient:AxisStarted()
     
     Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
         remoteInstance:Connect(function(archetypeName, payload)
-            print("GOT REPLICATION FOR ", archetypeName, payload)
+            -- print("GOT REPLICATION FOR ", archetypeName, payload)
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
             if payload.scope == Players.LocalPlayer.UserId then
                 world:insert(entityId, Components.Ours({}))
@@ -68,6 +68,7 @@ function MatterClient:AxisStarted()
         local myCharacterId = world:get(localPlayerId, Components.Player).characterId
         if myCharacterId then
             local equipperC = world:get(myCharacterId, Components.Equipper)
+            local oldEquippableId = equipperC.equippableId
             if equipperC then
                 world:insert(myCharacterId, equipperC:patch({
                     equippableId = equippableId,
@@ -75,7 +76,18 @@ function MatterClient:AxisStarted()
 
                 local replicatedC = world:get(equippableId, Components.Replicated)
                 if replicatedC and replicatedC.serverId then
-                    Remotes.Client:Get("RequestEquipEquippable"):SendToServer(replicatedC.serverId)
+                    -- Remotes.Client:Get("RequestEquipEquippable"):SendToServer(replicatedC.serverId)
+                    Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(replicatedC.serverId):andThen(function(response)
+                        if response == true then
+                            -- print("Equip succeeded")
+                        else
+                            warn("!! Equip failed !!")
+                            warn("Tried to equip " .. tostring(equippableId) .. " but server said " .. tostring(response))
+                            world:insert(myCharacterId, equipperC:patch({
+                                equippableId = oldEquippableId,
+                            }))
+                        end
+                    end)
                 else
                     warn("Equippable not replicated properly: Replicated component is ", replicatedC)
                 end
@@ -83,7 +95,7 @@ function MatterClient:AxisStarted()
                 warn("MatterClient: Equipper component not found for character", myCharacterId)
             end
         end
-        print("Applied equippabel change to character", myCharacterId, "with equippable", equippableId)
+        -- print("Applied equippabel change to character", myCharacterId, "with equippable", equippableId)
     end)
 end
 

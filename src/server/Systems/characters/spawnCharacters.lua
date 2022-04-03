@@ -24,33 +24,36 @@ return function(world)
         local playerEntityId = MatterUtil.getEntityId(player)
         local playerC = world:get(playerEntityId, Components.Player)
 
-        -- local startingTools = toolUtil.makePresetTools({
-        --     "Grab",
-        --     "Apple",
-        -- }, world)
+        local startingTools = toolUtil.makePresetTools({
+            "Grab",
+            "Apple",
+        }, world)
 
         local charEntityId = world:spawn(
-            -- Components.Instance({
-            --     instance = character,
-            -- }),
+            Components.Instance({
+                instance = character,
+            }),
             Components.Character({
                 playerId = playerEntityId,
+            }),
+            Components.Health({
+                health = 100,
+                maxHealth = 100,
+            }),
+            Components.Storage({
+                storableIds = Llama.List.toSet(startingTools),
+                capacity = 0,
+                maxCapacity = 10,
+            }),
+            Components.Equipper({
+                equippableId = nil,
+            }),
+            Components.Walkspeed({
+                walkspeed = 16,
+            }),
+            Components.Teamed({
+                teamId = world:get(playerEntityId, Components.Teamed).teamId,
             })
-            -- Components.Health({
-            --     health = 100,
-            --     maxHealth = 100,
-            -- }),
-            -- Components.Storage({
-            --     storableIds = Llama.List.toSet(startingTools),
-            --     capacity = 0,
-            --     maxCapacity = 10,
-            -- }),
-            -- Components.Equipper({
-            --     equippableId = nil,
-            -- }),
-            -- Components.Walkspeed({
-            --     walkspeed = 16,
-            -- })
         )
 
         world:insert(playerEntityId, playerC:patch({

@@ -12,7 +12,7 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 return function(world)
     local emptyEntitiesData = {}
 
-    if Matter.useThrottle(10) then
+    -- if Matter.useThrottle(3) then
         for id, checkC, replicatedC in world:query(Components.CheckArchetypes, Components.Replicated) do
             -- check what archetypes that are actually missing
             local missingArchetypes = {}
@@ -20,26 +20,28 @@ return function(world)
                 if not matterUtil.isArchetype(id, archetypeName, world) then
                     table.insert(missingArchetypes, archetypeName)
                 else
-                    print("..archetype " .. archetypeName .. " is present on " .. id)
+                    -- print("..archetype " .. archetypeName .. " is present on " .. id)
                 end
             end
             if #missingArchetypes > 0 then
                 table.insert(emptyEntitiesData, {
-                    serverId = replicatedC.serverId,
+                    serverId = tonumber(replicatedC.serverId),
                     missingArchetypes = missingArchetypes,
                 })
-                print("..ENTITY ", id, "MISSING ARCHETYPES:")
-                for _, archetypeName in ipairs(missingArchetypes) do
-                    print("\tMISSING ", archetypeName)
-                end
+                -- print("..ENTITY ", id, "MISSING ARCHETYPES:")
+                -- for _, archetypeName in ipairs(missingArchetypes) do
+                    -- print("\tMISSING ", archetypeName)
+                -- end
             end
         end
 
         if #emptyEntitiesData > 0 then
-            print("REQUESTING REPLICATE ARCHETYPES ENTITIES")
+            -- print("REQUESTING REPLICATE ARCHETYPES ENTITIES")
             Remotes.Client:Get("RequestReplicateArchetype"):CallServerAsync(emptyEntitiesData):andThen(function(response)
-                print("GOT SERVER RESPONSE, ", response)
+                -- print("GOT SERVER RESPONSE, ", response)
             end)
+        else
+            -- print("NO MISSING ARCHETYPES")
         end
-    end
+    -- end
 end

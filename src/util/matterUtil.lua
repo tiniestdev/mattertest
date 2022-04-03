@@ -148,14 +148,14 @@ end
 function matterUtil.getComponentSetFromArchetype(archetypeName)
     local archetypesToCheck = Archetypes.Catalog[archetypeName]
     if archetypesToCheck then
-        print("Archetypes to check:", archetypesToCheck)
+        -- print("Archetypes to check:", archetypesToCheck)
         local componentNameSet = {}
         for _, subArchetypeName in ipairs(archetypesToCheck) do
             componentNameSet = Llama.Set.union(componentNameSet, matterUtil.getComponentSetFromArchetype(subArchetypeName))
         end
         return componentNameSet
     else
-        print("Archetypes to check:", archetypeName)
+        -- print("Archetypes to check:", archetypeName)
         return Llama.Set.fromList({ archetypeName })
     end
 end
@@ -364,6 +364,17 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
             end
         end
     end
+end
+
+function matterUtil.getCharacterIdOfPlayer(player, world)
+    local playerId = matterUtil.getEntityId(player)
+    if not playerId then
+        warn("Could not get player entity id of " .. player.Name)
+        return nil
+    end
+    local playerC = world:get(playerId, Components.Player)
+    if not playerC.characterId then return nil end
+    return playerC.characterId
 end
 
 return matterUtil

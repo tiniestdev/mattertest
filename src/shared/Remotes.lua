@@ -9,9 +9,7 @@ local Definitions = {
     RequestRespawn = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 120, })
     }),
-    RequestEquipEquippable = Net.Definitions.ClientToServerEvent({
-        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 120, })
-    }),
+    RequestEquipEquippable = Net.Definitions.ServerAsyncFunction({}),
     RequestReplicateArchetype = Net.Definitions.ServerAsyncFunction({}),
     
     -- REPLICATIONS

@@ -24,11 +24,6 @@ function FusionClient:AxisStarted()
 
     local storableProps = Fusion.Value({})
     Intercom.Get("UpdateToolbar"):Connect(function(charStorageId)
-        -- local world = MatterClient.World
-        -- for i, storableInfo in pairs(uiUtil.getStorablePropsFromStorage(charStorageId, MatterClient.World)) do
-        --     print(world:get(storableInfo.storableId, Components.Equippable))
-        --     print(world:get(storableInfo.storableId, Components.Corporeal))
-        -- end
         storableProps:set(uiUtil.getStorablePropsFromStorage(charStorageId, MatterClient.World))
     end)
 
