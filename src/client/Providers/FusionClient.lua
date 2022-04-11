@@ -4,7 +4,7 @@ local Intercom = require(ReplicatedStorage.Intercom)
 local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 
-local UIFolder = script.Parent.Parent.UI
+local UIFolder = ReplicatedStorage.UI
 local Main = require(UIFolder.Main)
 
 local Components = require(ReplicatedStorage.components)

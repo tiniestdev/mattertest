@@ -7,7 +7,10 @@ Archetypes.Catalog = {
         "Instance",
     },
     CharacterArchetype = {
+        "NetworkOwned",
+        "Ragdollable",
         "Character",
+        "Skeleton",
         "Storage",
         "Equipper",
         "Teamed",

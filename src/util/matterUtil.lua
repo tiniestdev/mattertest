@@ -377,4 +377,18 @@ function matterUtil.getCharacterIdOfPlayer(player, world)
     return playerC.characterId
 end
 
+function matterUtil.editComponent(world, entityId, componentName, fieldName, fieldData)
+    local existing = world:get(entityId, Components[componentName])
+    if existing then
+        world:insert(entityId, existing:patch({
+            [fieldName] = fieldData,
+        }))
+    else
+        world:insert(entityId, Components[componentName]({
+            [fieldName] = fieldData,
+        }))
+    end
+    return "Done\n"
+end
+
 return matterUtil

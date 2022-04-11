@@ -42,9 +42,6 @@ ComponentInfo.Catalog = {
 		scope = {};
 		identifier = {};
 	},
-	ServerReplicated = {
-		serverId = {};
-	},
 
 	Instance = {
 		instance = {};
@@ -96,11 +93,22 @@ ComponentInfo.Catalog = {
             referenceToArchetype = "CharacterArchetype";
         },
 	},
+	NetworkOwned = {
+		networkOwner = {},
+	},
 	Character = {
 		playerId = {
             isReference = true;
             referenceToArchetype = "PlayerArchetype";
         },
+	},
+	Skeleton = {
+		skeletonInstance = {},
+	},
+	Ragdollable = {
+		downed = {},
+		stunned = {},
+		sleeping = {},
 	},
 	Health = {
 		health = {},

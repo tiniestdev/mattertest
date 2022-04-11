@@ -21,9 +21,10 @@ return function(world)
             if ourCharacterId then
                 if world:contains(ourCharacterId) then
                     local characterInstance = ourPlayerCR.new.player.Character
-                    world:insert(ourCharacterId, Components.Ours({}), Components.ShowMatterDebug({
-                        adornee = characterInstance.HumanoidRootPart,
-                    }))
+                    world:insert(ourCharacterId, Components.Ours({}))
+                    -- world:insert(ourCharacterId, Components.Ours({}), Components.ShowMatterDebug({
+                    --     adornee = characterInstance.HumanoidRootPart,
+                    -- }))
                     print("Marked character id " .. ourCharacterId .. " as ours")
                 else
                     warn("ourCharacterId ", ourCharacterId, "is not in world")
