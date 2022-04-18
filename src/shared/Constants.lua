@@ -29,4 +29,8 @@ Constants.CollisionRelations = {
     },
 }
 
+Constants.Ragdoll = {
+    DOWNED_HEALTH = 20;
+}
+
 return Constants

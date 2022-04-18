@@ -212,6 +212,9 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         end
 
         remappedComponentsData[componentName] = Llama.Dictionary.merge(payloadComponentData, updatedProps)
+        -- make sure we dont get feedback loops for commponents that look for changes and ask the server to change it
+        -- or "propose" changes
+        remappedComponentsData[componentName]["doNotReconcile"] = true
     end
 
     -- Now apply the remapped component data and hydrate em all up

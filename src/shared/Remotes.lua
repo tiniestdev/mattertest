@@ -11,7 +11,9 @@ local Definitions = {
     }),
     RequestEquipEquippable = Net.Definitions.ServerAsyncFunction({}),
     RequestReplicateArchetype = Net.Definitions.ServerAsyncFunction({}),
-    
+
+    ProposeRagdollState = Net.Definitions.ServerAsyncFunction({}),
+
     -- REPLICATIONS
     ReplicateArchetype = Net.Definitions.ServerToClientEvent({ }),
     DespawnedEntities = Net.Definitions.ServerToClientEvent({ }),

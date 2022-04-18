@@ -17,7 +17,7 @@ return function(world)
             world:insert(id, skeletonCR.new:patch({
                 skeletonInstance = newSkeleton,
             }))
-            -- print("fit skeleton", id)
+            print("fit skeleton", id)
         end
     end
 end

@@ -3,12 +3,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Components = require(ReplicatedStorage.components)
 local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+local localUtil = require(ReplicatedStorage.Util.localUtil)
+
 local Remotes = require(ReplicatedStorage.Remotes)
 local Net = require(ReplicatedStorage.Packages.Net)
 
@@ -60,6 +63,27 @@ function MatterClient:AxisStarted()
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
             if payload.scope == Players.LocalPlayer.UserId then
                 world:insert(entityId, Components.Ours({}))
+            end
+        end)
+    end)
+
+    UserInputService.InputBegan:Connect(function(inputObject)
+        if inputObject.KeyCode == Enum.KeyCode.X then
+            local characterId = localUtil.getMyCharacterEntityId(world)
+            if not characterId then return end
+            local ragdollC = world:get(characterId, Components.Ragdollable)
+            world:insert(characterId, ragdollC:patch({
+                sleeping = not ragdollC.sleeping,
+                doNotReconcile = false,
+            }))
+        end
+    end)
+    Intercom.Get("ProposeRagdollState"):Connect(function(ragdollState)
+        -- print("Proposing ragdoll state", ragdollState)
+        Remotes.Client:Get("ProposeRagdollState"):CallServerAsync(ragdollState):andThen(function(response)
+            if response == true then
+                -- print("Ragdoll state change succeeded")
+            else
             end
         end)
     end)

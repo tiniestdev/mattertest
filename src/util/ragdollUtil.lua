@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
 local Constants = require(ReplicatedStorage.Constants)
+local Components = require(ReplicatedStorage.components)
 local ragdollUtil = {}
 
 ragdollUtil.RegularLimb_To_SkeletonLimb = {
@@ -99,15 +100,15 @@ ragdollUtil.Ragdoll = function(char, skeleton)
     skeleton.Torso.AssemblyAngularVelocity = assemblyRotVel
 
     -- Cleanup for when unragdolling
-    local skeletonTorso = skeleton:FindFirstChild("Torso")
-    if skeletonTorso then
-        local carryPrompt = skeletonTorso:FindFirstChild("CarryPrompt")
-        if carryPrompt then
-            carryPrompt.Enabled = true
-        else
-            warn("no carryPrompt found in torso of ", char)
-        end
-    end
+    -- local skeletonTorso = skeleton:FindFirstChild("Torso")
+    -- if skeletonTorso then
+    --     local carryPrompt = skeletonTorso:FindFirstChild("CarryPrompt")
+    --     if carryPrompt then
+    --         carryPrompt.Enabled = true
+    --     else
+    --         warn("no carryPrompt found in torso of ", char)
+    --     end
+    -- end
 end
 
 ragdollUtil.Unragdoll = function(char, skeleton)
@@ -131,15 +132,15 @@ ragdollUtil.Unragdoll = function(char, skeleton)
     physicsUtil.DeepSetCanCollide(skeleton, false)
     physicsUtil.DeepSetCanCollide(char, true)
 
-    local skeletonTorso = skeleton:FindFirstChild("Torso")
-    if skeletonTorso then
-        local carryPrompt = skeletonTorso:FindFirstChild("CarryPrompt")
-        if carryPrompt then
-            carryPrompt.Enabled = false
-        else
-            warn("no carryPrompt found in torso of ", char)
-        end
-    end
+    -- local skeletonTorso = skeleton:FindFirstChild("Torso")
+    -- if skeletonTorso then
+    --     local carryPrompt = skeletonTorso:FindFirstChild("CarryPrompt")
+    --     if carryPrompt then
+    --         carryPrompt.Enabled = false
+    --     else
+    --         warn("no carryPrompt found in torso of ", char)
+    --     end
+    -- end
 end
 
 ragdollUtil.DisableAnimationJoints = function(char)
@@ -198,5 +199,18 @@ ragdollUtil.EnableHumanoid = function(hum)
     end
     hum:ChangeState(Enum.HumanoidStateType.GettingUp)
 end
+
+
+
+ragdollUtil.shouldBeRagdolled = function(state)
+    return state.downed or state.stunned or state.sleeping
+end
+
+ragdollUtil.shouldBeDowned = function(entityId, world)
+    local healthC = world:get(entityId, Components.Health)
+    -- this won't down someone if they have nil health O_O
+    return healthC.health and healthC.health <= Constants.Ragdoll.DOWNED_HEALTH
+end
+
 
 return ragdollUtil

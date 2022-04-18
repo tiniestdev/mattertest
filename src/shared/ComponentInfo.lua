@@ -63,6 +63,19 @@ ComponentInfo.Catalog = {
         cframe = {};
         size = {};
 	},
+	Grabber = {
+		grabbableId = {
+			isReference = true;
+			referenceToArchetype = "Grabbable";
+		};
+		attachmentInstance = {};
+	},
+	Grabbable = {
+		grabberIds = {
+            isReferenceSet = true;
+            referenceToArchetype = "Grabber";
+		};
+	},
 
 	-- Applied to objects associated with a certain team or alliance.
 	Teamed = {
@@ -95,6 +108,7 @@ ComponentInfo.Catalog = {
 	},
 	NetworkOwned = {
 		networkOwner = {},
+		instances = {},
 	},
 	Character = {
 		playerId = {

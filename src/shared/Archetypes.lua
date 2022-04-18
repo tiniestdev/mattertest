@@ -10,6 +10,7 @@ Archetypes.Catalog = {
         "NetworkOwned",
         "Ragdollable",
         "Character",
+        "Health",
         "Skeleton",
         "Storage",
         "Equipper",

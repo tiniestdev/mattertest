@@ -18,6 +18,7 @@ local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 local toolUtil = require(ReplicatedStorage.Util.toolUtil)
 local ToolInfos = require(ReplicatedStorage.ToolInfos)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
 
 
 local CharacterEvent = matterUtil.ObservableToEvent(PlayerUtil.getCharactersObservable())
@@ -40,6 +41,8 @@ return function(world)
         local charEntityId = world:spawn(
             Components.NetworkOwned({
                 networkOwner = player,
+                instances = {},
+                -- instances = Llama.List.toSet(physicsUtil.GetParts(character)),
             }),
             Components.Instance({
                 instance = character,

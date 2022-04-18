@@ -11,6 +11,7 @@ local Components = require(ReplicatedStorage.components)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local playerUtil = require(ReplicatedStorage.Util.playerUtil)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+local ragdollUtil = require(ReplicatedStorage.Util.ragdollUtil)
 
 local Net = require(ReplicatedStorage.Packages.Net)
 local Remotes = require(ReplicatedStorage.Remotes)
@@ -58,6 +59,36 @@ function MatterStart:AxisStarted()
                 replicationUtil.replicateServerEntityArchetypeTo(player, serverId, archetypeName, world)
             end
         end
+        return true
+    end)
+    Remotes.Server:OnFunction("ProposeRagdollState", function(player, ragdollState)
+        local characterId = matterUtil.getCharacterIdOfPlayer(player, world)
+        local ragdollableC = world:get(characterId, Components.Ragdollable)
+        local healthC = world:get(characterId, Components.Health)
+
+        local newDowned = ragdollableC.downed
+        if ragdollState.downed ~= nil and ragdollUtil.shouldBeDowned(characterId, world) == ragdollState.downed then
+        -- if false then
+            newDowned = ragdollState.downed
+        else
+            print("Rejected ragdoll state proposal downed: ", ragdollState.downed, " shouldBeDowned: ", ragdollUtil.shouldBeDowned(characterId, world))
+        end
+
+        local newSleeping = ragdollableC.sleeping
+        if ragdollState.sleeping ~= nil then
+        -- if false then
+            newSleeping = ragdollState.sleeping
+        end
+
+        -- ehhh worry about stuns later
+
+        world:insert(characterId, ragdollableC:patch({
+            downed = newDowned,
+            sleeping = newSleeping,
+        }))
+
+        replicationUtil.replicateServerEntityArchetypeTo(player, characterId, "Ragdollable", world)
+
         return true
     end)
     Remotes.Server:OnFunction("RequestEquipEquippable", function(player, equipId)

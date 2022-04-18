@@ -2,8 +2,8 @@ OKAY SO i got ragdoll working on server, now i just need to copy and paste the m
 and then i hope i can just forget about it and work on the grabbing stuff next
 
 
-
-
+MistyRei is to recieve a runker donut 330117275
+Discord id: 483036244025278478
 
 
 

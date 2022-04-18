@@ -13,7 +13,7 @@ function physicsUtil.GetParts(target)
 	--(good for tables containing parts/instances as values)
 	if typeof(target) == "table"  then
 		local parts = {}
-		for i,v in pairs(target)do
+		for i,v in ipairs(target)do
 			local partsAdd = physicsUtil.GetParts(v)
 			tableUtil.Append(parts, partsAdd)
 		end
@@ -25,13 +25,13 @@ function physicsUtil.GetParts(target)
 	if typeof(target) == "Instance" then
 		local parts = {}
 		local Descendants = target:GetDescendants()
-		for _, descendant in pairs(Descendants) do
+		for _, descendant in ipairs(Descendants) do
 			if descendant:IsA("BasePart") then
 				table.insert(parts, descendant)
 			end
 		end
 		if target:IsA("BasePart") then
-			table.insert(parts, parts)
+			table.insert(parts, target)
 		end
 		return parts
 	end
@@ -43,7 +43,7 @@ function physicsUtil.GetUnanchoredParts(target)
 	--(good for tables containing parts/instances as values)
 	if typeof(target) == "table"  then
 		local parts = {}
-		for i,v in pairs(target)do
+		for i,v in ipairs(target)do
 			local partsAdd = physicsUtil.GetUnanchoredParts(v)
 			tableUtil.Append(parts, partsAdd)
 		end
@@ -55,7 +55,7 @@ function physicsUtil.GetUnanchoredParts(target)
 	if typeof(target) == "Instance" then
 		local parts = {}
 		local Descendants = target:GetDescendants()
-		for _, descendant in pairs(Descendants) do
+		for _, descendant in ipairs(Descendants) do
 			if descendant:IsA("BasePart") and not descendant.Anchored then
 				table.insert(parts, descendant)
 			end
@@ -78,7 +78,7 @@ end
 function physicsUtil.DeepTask(target, taskFunction)
 	assert(target, "target is nil")
 	assert(typeof(taskFunction) == "function", "taskFunction not a function")
-	for i,v in pairs(physicsUtil.GetParts(target))do
+	for i,v in ipairs(physicsUtil.GetParts(target))do
 		taskFunction(v)
 	end
 end
@@ -119,8 +119,8 @@ function physicsUtil.DeepSetNoCollisionConstraint(target, state)
 	--delegate most work to deep task
 	local parts = physicsUtil.GetParts(target)
 	if state then
-		for i, part1 in pairs(parts)do
-			for i, part2 in pairs(parts)do
+		for i, part1 in ipairs(parts)do
+			for i, part2 in ipairs(parts)do
 				if part1:CanCollideWith(part2) then
 					local NCC = Instance.new("NoCollisionConstraint")
 					NCC.Part0 = part1
@@ -131,8 +131,8 @@ function physicsUtil.DeepSetNoCollisionConstraint(target, state)
 			end
 		end
 	else
-		for i, part1 in pairs(parts)do
-			for i, child in pairs(part1:GetChildren())do
+		for i, part1 in ipairs(parts)do
+			for i, child in ipairs(part1:GetChildren())do
 				if child:IsA("NoCollisionConstraint") then
 					child:Destroy()
 				end
@@ -157,6 +157,7 @@ end
 function physicsUtil.DeepSetNetworkOwner(target, owner)
 	--delegate most work to deep task
 	physicsUtil.DeepTask(target, function(part)
+		print(part, part:IsA("BasePart"))
 		if part:CanSetNetworkOwnership() then
 			part:SetNetworkOwner(owner)
 		else

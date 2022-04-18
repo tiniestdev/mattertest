@@ -391,4 +391,30 @@ function matterUtil.editComponent(world, entityId, componentName, fieldName, fie
     return "Done\n"
 end
 
+--[[
+    Provide a list of components (as in {Component.A, Component.B, ...})
+    It will listen to changes for *any of them*.
+    Provide a callback.
+    The callback will be called with the component and component name that changed as an argument.
+]]
+-- this is too much for me to think about so if things really do get out of hand ill implement this
+-- but for now im gonna do it quick n messy
+--[[
+function matterUtil.queryMultipleChanged(componentNameList, world)
+    local queryLists = {} -- takes form of a lua tuple : Components.A, Components.B, ...
+    for i = 1, #componentNameList do
+        local queryList = {}
+        for i, componentName in ipairs(componentNameList) do
+            if not Components[componentName] then
+                warn("Component " .. componentName .. " does not exist")
+                return
+            end
+            table.insert(trackedComponents, Components[componentName])
+        end
+    end
+    for id, comp in world:queryChanged(unpack(trackedComponents))
+
+    --for id, ragdollableCR, characterC, instanceC, skeletonC in world:queryChanged(
+end]]
+
 return matterUtil
