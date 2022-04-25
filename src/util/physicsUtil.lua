@@ -157,7 +157,6 @@ end
 function physicsUtil.DeepSetNetworkOwner(target, owner)
 	--delegate most work to deep task
 	physicsUtil.DeepTask(target, function(part)
-		print(part, part:IsA("BasePart"))
 		if part:CanSetNetworkOwnership() then
 			part:SetNetworkOwner(owner)
 		else

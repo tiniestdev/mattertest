@@ -11,6 +11,7 @@ local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local localUtil = require(ReplicatedStorage.Util.localUtil)
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 
 local Remotes = require(ReplicatedStorage.Remotes)
 local Net = require(ReplicatedStorage.Packages.Net)
@@ -28,15 +29,7 @@ MatterClient.OurPlayerEntityId = nil
 local world = MatterClient.World
 
 function MatterClient:AxisPrepare()
-    -- print("MatterClient: Axis prepare")
     MatterClient.MainLoop = Matter.Loop.new(MatterClient.World)
-end
-
-function MatterClient:AxisStarted()
-
-    -- print("MatterClient: Axis started")
-
-    -- print("MatterClient: Starting systems...")
     local systems = {}
     for _, systemModule in ipairs(script.Parent.Parent.Systems:GetDescendants()) do
         if systemModule:IsA("ModuleScript") then
@@ -44,25 +37,33 @@ function MatterClient:AxisStarted()
         end
     end
 
-    -- print("MatterClient: Scheduling systems")
     MatterClient.MainLoop:scheduleSystems(systems)
     MatterClient.MainLoop:begin({ default = RunService.Stepped})
 
-    -- print("MatterClient: Binding components from tags")
-    MatterUtil.bindCollectionService(MatterClient.World)
+    task.wait(0.1)
+end
 
+function MatterClient:AxisStarted()
     -- make a fake dud player entity until we get real data
     local localPlayerId = PlayerUtil.makePlayerEntity(Players.LocalPlayer, world)
     MatterClient.OurPlayerEntityId = localPlayerId
     replicationUtil.setRecipientIdScopeIdentifier(localPlayerId, Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
     world:insert(localPlayerId, Components.Ours({}))
-    
+
     Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
         remoteInstance:Connect(function(archetypeName, payload)
-            -- print("GOT REPLICATION FOR ", archetypeName, payload)
+
+            -- inside this deserialize method, we should make sure we don't create a new one if its a playerarchetype
+            -- that points to our player
+            -- we gotta map it to our local player id
+            -- MatterClient.OurPlayerEntityId = localPlayerId
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
-            if payload.scope == Players.LocalPlayer.UserId then
-                world:insert(entityId, Components.Ours({}))
+            if archetypeName == "PlayerArchetype" then
+                
+            else
+                if payload.scope == Players.LocalPlayer.UserId then
+                    world:insert(entityId, Components.Ours({}))
+                end
             end
         end)
     end)
@@ -77,7 +78,62 @@ function MatterClient:AxisStarted()
                 doNotReconcile = false,
             }))
         end
+        if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+            if inputObject.UserInputState == Enum.UserInputState.Begin then
+                -- release ANYTHING
+                -- TODO
+                -- do we have anything equipped?
+                local characterId = localUtil.getMyCharacterEntityId(world)
+                local equipperC = world:get(characterId, Components.Equipper)
+                if not equipperC.equippableId then
+                    -- is there anything grabbable under cursor
+                    local mousePosition = Players.LocalPlayer:GetMouse().Hit.Position
+                    local head = Players.LocalPlayer.Character:FindFirstChild("Head")
+                    if not head then error("wtf") end
+
+                    local cameraPosition = workspace.CurrentCamera.CFrame.Position
+
+                    local params = RaycastParams.new()
+                    params.CollisionGroup = "Default"
+                    local raycastResult = workspace:Raycast(head.Position, (mousePosition-head.Position).Unit * 20, params)
+                    if raycastResult and raycastResult.Instance:IsA("BasePart") then
+                        -- see if raycastResult is grabbable
+                        local grabbableId = matterUtil.getEntityId(raycastResult.Instance)
+                        if grabbableId then
+                            local grabbableC = world:get(grabbableId, Components.Grabbable)
+                            if grabbableC then
+                                local grabberC = world:get(characterId, Components.Grabber)
+                                world:insert(characterId, grabberC:patch({
+                                    grabbableId = grabbableId,
+                                }))
+                                print("grabbableId: " .. grabbableId)
+                                -- maybe rewrite grabber system?
+                                -- a grabber should probably be some attachment, and a grabbable should auto
+                                -- generate an attachment when grabbed onto, like nearest point on geometry type stuff
+                                -- then, the hands of the character could be grabbers instead of just the character??
+                                -- or hold on since grabbing is supposed to be more like some telekensis stuff
+                                -- like theres diff orientations and stuff idk idk idk
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end)
+
+    UserInputService.InputEnded:Connect(function(inputObject)
+        if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- release ANYTHING
+            -- TODO
+            local characterId = localUtil.getMyCharacterEntityId(world)
+            local grabberC = world:get(characterId, Components.Grabber)
+            world:insert(characterId, grabberC:patch({
+                grabbableId = Matter.None,
+            }))
+            print("removed grabbableId")
+        end
+    end)
+    
     Intercom.Get("ProposeRagdollState"):Connect(function(ragdollState)
         -- print("Proposing ragdoll state", ragdollState)
         Remotes.Client:Get("ProposeRagdollState"):CallServerAsync(ragdollState):andThen(function(response)
@@ -89,37 +145,50 @@ function MatterClient:AxisStarted()
     end)
 
     Intercom.Get("EquipEquippable"):Connect(function(equippableId)
+        -- make sure we're actually an equipper
         local myCharacterId = world:get(localPlayerId, Components.Player).characterId
-        if myCharacterId then
-            local equipperC = world:get(myCharacterId, Components.Equipper)
-            local oldEquippableId = equipperC.equippableId
-            if equipperC then
-                world:insert(myCharacterId, equipperC:patch({
-                    equippableId = equippableId,
-                }))
+        if not myCharacterId then warn("wtf no characterid entity??") end
+        local equipperC = world:get(myCharacterId, Components.Equipper)
+        local oldEquippableId = equipperC.equippableId
+        if not equipperC then warn("wtf no equipper on entity ", myCharacterId, "?") end
+        local replicatedC = world:get(equippableId, Components.Replicated)
+        if not replicatedC then warn("wtf no replicated on entity ", equippableId, "?") end
+        if not replicatedC.serverId then warn("wtf no serverId on replicated component on entity ", equippableId, "?") end
 
-                local replicatedC = world:get(equippableId, Components.Replicated)
-                if replicatedC and replicatedC.serverId then
-                    -- Remotes.Client:Get("RequestEquipEquippable"):SendToServer(replicatedC.serverId)
-                    Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(replicatedC.serverId):andThen(function(response)
-                        if response == true then
-                            -- print("Equip succeeded")
-                        else
-                            warn("!! Equip failed !!")
-                            warn("Tried to equip " .. tostring(equippableId) .. " but server said " .. tostring(response))
-                            world:insert(myCharacterId, equipperC:patch({
-                                equippableId = oldEquippableId,
-                            }))
-                        end
-                    end)
+        -- okay actual equip logic starts here
+        if equipperC.equippableId == equippableId then
+            -- unequip it
+            world:insert(myCharacterId, equipperC:patch({
+                equippableId = Matter.None,
+            }))
+            Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(nil):andThen(function(response)
+                if response == true then
+                    -- print("Equip succeeded")
                 else
-                    warn("Equippable not replicated properly: Replicated component is ", replicatedC)
+                    warn("!! Unequip failed !!")
+                    warn("Tried to unequip " .. tostring(equippableId) .. " but server said " .. tostring(response))
+                    world:insert(myCharacterId, equipperC:patch({
+                        equippableId = oldEquippableId,
+                    }))
                 end
-            else
-                warn("MatterClient: Equipper component not found for character", myCharacterId)
-            end
+            end)
+        else
+            world:insert(myCharacterId, equipperC:patch({
+                equippableId = equippableId,
+            }))
+            Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(replicatedC.serverId):andThen(function(response)
+                -- print("response: ", response)
+                if response == true then
+                    -- print("Equip succeeded")
+                else
+                    warn("!! Equip failed !!")
+                    warn("Tried to equip " .. tostring(equippableId) .. " but server said " .. tostring(response))
+                    world:insert(myCharacterId, equipperC:patch({
+                        equippableId = oldEquippableId or Matter.None,
+                    }))
+                end
+            end)
         end
-        -- print("Applied equippabel change to character", myCharacterId, "with equippable", equippableId)
     end)
 end
 

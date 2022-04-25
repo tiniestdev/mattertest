@@ -7,14 +7,15 @@ local ToolInfos = {}
 -- toolScript is implicitly assumed to be the same name of the key
 -- corporeal is implicitly assumed to be the same name in COrporeals
 ToolInfos.Catalog = {
-    ["Grab"] = {
+    ["Iron"] = {
         Equippable = {
-            droppable = false,
-            transferrable = false,
+            droppable = true,
+            transferrable = true,
         },
         Storable = {
-            storageSize = 0,
+            storageSize = 1,
         },
+        Corporeal = {},
     },
     ["Apple"] = {
         Equippable = {

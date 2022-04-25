@@ -17,9 +17,11 @@ return function(world)
     for _, player in Matter.useEvent(PlayerEvent, "Event") do
         local newPlayerEntityId = PlayerUtil.makePlayerEntity(player, world)
         local teamId = TeamUtil.getUnfilledTeamId(world)
-        world:insert(newPlayerEntityId, Components.Teamed({
-            teamId = teamId,
-        }))
+        world:insert(newPlayerEntityId,
+            Components.Teamed({
+                teamId = teamId,
+            })
+        )
     end
 end
 

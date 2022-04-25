@@ -564,6 +564,15 @@ local function FlipNumeric(tab1)
 	return newTab
 end
 
+local function Rotate(tab)
+	local temp = tab[#tab]
+	for i = #tab, 2, -1 do
+		tab[i] = tab[i-1]
+	end
+	tab[1] = temp
+	return tab
+end
+
 tableUtil.Copy = CopyTable
 tableUtil.CopyShallow = CopyTableShallow
 tableUtil.Sync = Sync
@@ -589,6 +598,6 @@ tableUtil.GetRepeatedValues = GetRepeatedValues
 tableUtil.HaveSameValues = HaveSameValues
 tableUtil.Flip = Flip
 tableUtil.FlipNumeric = FlipNumeric
-
+tableUtil.Rotate = Rotate
 
 return tableUtil

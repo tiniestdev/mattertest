@@ -14,6 +14,7 @@ Archetypes.Catalog = {
         "Skeleton",
         "Storage",
         "Equipper",
+        "Grabber",
         "Teamed",
         "Instance",
     },
@@ -21,7 +22,11 @@ Archetypes.Catalog = {
         "Equippable",
         "Storable",
         "Corporeal",
-    }
+    },
+    GrabbableArchetype = {
+        "Grabbable",
+        "Instance",
+    },
 }
 
 return Archetypes

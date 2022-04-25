@@ -6,6 +6,7 @@ local ComponentInfo = require(ReplicatedStorage.ComponentInfo)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Llama = require(ReplicatedStorage.Packages.llama)
 local Archetypes = require(ReplicatedStorage.Archetypes)
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 local matterUtil = {}
 
@@ -71,18 +72,44 @@ function matterUtil.setEntityId(instance, id)
     end
 end
 
-function matterUtil.bindInstanceToComponent(instance, component, world)
+-- There will be instances that are bound to entities.
+-- Even though entities are technically data-only and non corporeal,
+-- they are often represented by a corporeal object (an instance in workspace).
+-- If a client sees it, it will request it to be replicated.
+function matterUtil.addInstanceReplicatedArchetype(instance, archetypeName)
+    CollectionService:AddTag(instance, "AUTOREPLICATE_" .. archetypeName)
 end
 
 --[[
-    The collectionservice will listen to every tag that is also a component name.
-    It will deal with the creation of entity creation, component adding, and component removing
-    based on tags.
-    If components are removed in data, it is not reflected in tags. They may linger in instances.
-    Do not rely on tags to be the source of truth, always refer to world:get.
+    Tags should never be directly synonymous with components.
+    Instead, they should be programmatically handled to be assigned some entity with some archetype(s)
+    more like how a tag "Zombie" can make a Character archetype that is configured differently from
+    some tag "Human" that makes a Character archetype too.
+
+    Tags should be handled individually by some provider, which will apply all the
+    matter components and entities, and let the matter world handle things from there.
 ]]
-function matterUtil.bindCollectionService(world)
-end
+
+-- function matterUtil.createComponentsTagged(componentName, world)
+--     local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+--     for i, instance in ipairs(CollectionService:GetTagged(componentName)) do
+--         -- does it already have an id?
+--         local entityId = matterUtil.getEntityId(instance)
+--         if entityId then
+--             replicationUtil.insertOrUpdateComponent(entityId, componentName, {}, world)
+--         else
+--             -- create a new id
+--             entityId = world:spawn(
+--                 Components[componentName]({}),
+--                 Components.Replicated({
+--                     archetypes = {componentName},
+--                 })
+--             )
+--             matterUtil.setEntityId(instance, entityId)
+--         end
+--         replicationUtil.replicateServerEntityArchetypeToAll(entityId, componentName, world)
+--     end
+-- end
 
 function matterUtil.NetSignalToEvent(signalName, remotes)
     local newSignal = Instance.new("BindableEvent")
@@ -135,6 +162,17 @@ function matterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
     end
 end
 
+function matterUtil.getMissingComponentsOfArchetype(entityId, archetypeName, world)
+    local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+    local missing = {}
+    for componentName, _ in pairs(componentSet) do
+        if not world:get(entityId, Components[componentName]) then
+            table.insert(missing, componentName)
+        end
+    end
+    return missing
+end
+
 function matterUtil.isArchetype(entityId, archetypeName, world)
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
     for componentName, _ in pairs(componentSet) do
@@ -143,6 +181,60 @@ function matterUtil.isArchetype(entityId, archetypeName, world)
         end
     end
     return true
+end
+
+function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, ...)
+    local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+    local componentList = tableUtil.FlipNumeric(componentSet)
+    local changedEntities = {}
+
+    -- cycle through every single component that might have changed
+    -- we need to rotate the list that will go inside the queryChanged, since
+    -- only the FIRST argument will be checked for changes
+    
+    -- rotate componentList
+    for i=1, #componentList do
+        tableUtil.Rotate(componentList)
+        local actualComponents = {}
+        for _, componentName in ipairs(componentList) do
+            table.insert(actualComponents, Components[componentName])
+        end
+        local currentComponentName = componentList[1]
+        for id, CR in world:queryChanged(unpack(actualComponents)) do
+            if not changedEntities[id] then
+                changedEntities[id] = {}
+            end
+            changedEntities[id][currentComponentName] = CR
+        end
+    end
+
+    for i, componentName in ipairs(componentList) do
+        for id, componentCR in world:queryChanged(Components[componentName], ...) do
+            if matterUtil.isArchetype(id, archetypeName, world) then
+                if not changedEntities[id] then
+                    changedEntities[id] = {}
+                end
+                changedEntities[id][componentName] = componentCR
+            end
+        end
+    end
+    
+    return changedEntities
+end
+
+function matterUtil.replicateChangedArchetypes(archetypeName, world)
+    local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, Components.ReplicateToClient)) do
+        -- print("Id ", id, " is an archetype ", archetypeName, " that changed")
+        local componentsChanged = false
+        for componentName, cr in pairs(crs) do
+            componentsChanged = true
+        end
+        if componentsChanged then
+            replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
+            -- print("RR2: replicated entity " .. id .. " to archetype " .. archetypeName)
+        end
+    end
 end
 
 function matterUtil.getComponentSetFromArchetype(archetypeName)
@@ -188,30 +280,28 @@ function matterUtil.getServerEntityArchetypesOfReferences(payload)
     for componentName, componentData in pairs(components) do
         local properties = ComponentInfo.Catalog[componentName]
         for propertyName, propertyMetadata in pairs(properties) do
-            if propertyMetadata.isReference then
-                local refArchetype = propertyMetadata.referenceToArchetype
-                assert(refArchetype, "No referenceToArchetype for " .. componentName .. "." .. propertyName)
+            if componentData[propertyName] then
+                if propertyMetadata.isReference then
+                    local refArchetype = propertyMetadata.referenceToArchetype
+                    assert(refArchetype, "No referenceToArchetype for " .. componentName .. "." .. propertyName)
 
-                -- does the field actually reference an entity or is it nil
-                if componentData[propertyName] then
+                    -- does the field actually reference an entity or is it nil
                     table.insert(serverEntities, {
                         entityId = componentData[propertyName],
                         archetype = refArchetype,
                     })
+                elseif propertyMetadata.isReferenceSet then
+                    local refArchetype = propertyMetadata.referenceToArchetype
+                    assert(refArchetype, "No referenceToArchetype for " .. componentName .. "." .. propertyName)
+
+                    -- loop through the *set*
+                    for entityId, _ in pairs(componentData[propertyName]) do
+                        table.insert(serverEntities, {
+                            entityId = entityId,
+                            archetype = refArchetype,
+                        })
+                    end
                 end
-
-            elseif propertyMetadata.isReferenceSet then
-                local refArchetype = propertyMetadata.referenceToArchetype
-                assert(refArchetype, "No referenceToArchetype for " .. componentName .. "." .. propertyName)
-
-                -- loop through the *set*
-                for entityId, _ in pairs(componentData[propertyName]) do
-                    table.insert(serverEntities, {
-                        entityId = entityId,
-                        archetype = refArchetype,
-                    })
-                end
-
             end
         end
     end

@@ -30,7 +30,7 @@ return function(world)
         local playerC = world:get(playerEntityId, Components.Player)
 
         local startingTools = toolUtil.makePresetTools({
-            "Grab",
+            "Iron",
             "Apple",
         }, world)
 
@@ -39,6 +39,9 @@ return function(world)
         hum.RequiresNeck = false
 
         local charEntityId = world:spawn(
+            Components.ReplicateToClient({
+                archetypes = {"CharacterArchetype"}
+            }),
             Components.NetworkOwned({
                 networkOwner = player,
                 instances = {},
@@ -68,6 +71,9 @@ return function(world)
             Components.Equipper({
                 equippableId = nil,
             }),
+            Components.Grabber({
+                equippableId = nil,
+            }),
             Components.Walkspeed({
                 walkspeed = 16,
             }),
@@ -81,7 +87,6 @@ return function(world)
         }))
         print("Player ID " .. playerEntityId .. " has character ID " .. charEntityId)
         matterUtil.setEntityId(character, charEntityId)
-        CollectionService:AddTag(character, "Character")
     end
 end
 

@@ -40,8 +40,7 @@ function MatterStart:AxisPrepare()
     MatterStart.MainLoop:scheduleSystems(systems)
     MatterStart.MainLoop:begin({ default = RunService.Heartbeat })
 
-    -- print("MatterStart: Binding components from tags")
-    matterUtil.bindCollectionService(world)
+    task.wait(1)
 end
 
 function MatterStart:AxisStarted()
@@ -61,6 +60,7 @@ function MatterStart:AxisStarted()
         end
         return true
     end)
+
     Remotes.Server:OnFunction("ProposeRagdollState", function(player, ragdollState)
         local characterId = matterUtil.getCharacterIdOfPlayer(player, world)
         local ragdollableC = world:get(characterId, Components.Ragdollable)
@@ -81,7 +81,6 @@ function MatterStart:AxisStarted()
         end
 
         -- ehhh worry about stuns later
-
         world:insert(characterId, ragdollableC:patch({
             downed = newDowned,
             sleeping = newSleeping,
@@ -91,6 +90,7 @@ function MatterStart:AxisStarted()
 
         return true
     end)
+
     Remotes.Server:OnFunction("RequestEquipEquippable", function(player, equipId)
         -- print("REQUESTING EQUIP ID ", equipId, " FOR ", player.Name)
         local equipperId = matterUtil.getCharacterIdOfPlayer(player, world)
@@ -99,30 +99,19 @@ function MatterStart:AxisStarted()
         -- validity check
         if true then
             world:insert(equipperId, equipperC:patch({
-                equippableId = equipId,
+                equippableId = equipId or Matter.None,
             }))
             -- print("Changed serverside to equip id ", world:get(equipperId, Components.Equipper).equippableId)
             return true
         else
             -- print("Reject change")
-            world:insert(equipperId, equipperC:patch({
-                equippableId = nil,
-            }))
+            -- world:insert(equipperId, equipperC:patch({
+            --     equippableId = nil,
+            -- }))
+            -- it'll revert clientside, no need to do anything serverside
             return false
         end
     end)
-    -- Remotes.Server:OnEvent("ClientToServer", function(player, msg)
-    --     print("SERVER recieved a message from player", player, msg)
-    -- end)
-    -- task.spawn(function()
-    --     task.wait(3)
-    --     print("STARTING SOME TESTS=======")
-    --     for i=1,3 do
-    --         task.wait(1)
-    --         Remotes.Server:Create("ServerToClient"):SendToAllPlayers("servermessasge")
-    --         print("Fired event")
-    --     end
-    -- end)
 end
 
 return MatterStart

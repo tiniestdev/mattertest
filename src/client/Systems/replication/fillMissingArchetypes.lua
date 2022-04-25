@@ -12,6 +12,11 @@ local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 return function(world)
     local emptyEntitiesData = {}
 
+    -- I don't think the client should have to ask the server to replicate stuff
+    -- The server should provide everything replicatable as it deems fit
+    -- Then the client just listens to whatever the server adds or tells it to change
+
+    --[[
     -- if Matter.useThrottle(3) then
         for id, checkC, replicatedC in world:query(Components.CheckArchetypes, Components.Replicated) do
             -- check what archetypes that are actually missing
@@ -44,4 +49,5 @@ return function(world)
             -- print("NO MISSING ARCHETYPES")
         end
     -- end
+    ]]
 end

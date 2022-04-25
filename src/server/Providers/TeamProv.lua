@@ -32,19 +32,26 @@ function TeamProv:AxisStarted()
             if teamC and teamC.teamId == newTeamId then
                 return
             else
-                world:insert(entityId, Components.Teamed({
-                    teamId = newTeamId
-                }))
+                world:insert(entityId,
+                    Components.Teamed({
+                        teamId = newTeamId
+                    })
+                )
             end
         end
     end)
 
     -- CREATE ALLIANCES
     for allianceName, allianceInfo in pairs(Teams.Alliances) do
-        local allianceId = world:spawn(Components.Alliance({
-            ["allianceName"] = allianceName;
-            ["teamIds"] = {};
-        }))
+        local allianceId = world:spawn(
+            Components.Alliance({
+                ["allianceName"] = allianceName;
+                ["teamIds"] = {};
+            }),
+            Components.ReplicateToClient({
+                archetypes = {"Alliance"},
+            })
+        )
         Teams.NameToId[allianceName] = allianceId
         Teams.IdToName[allianceId] = allianceName
     end
@@ -52,13 +59,18 @@ function TeamProv:AxisStarted()
     -- CREATE TEAMS (AND LINK THEM TO THEIR ALLIANCES)
     for teamName, teamInfo in pairs(Teams.Teams) do
         -- allianceId could potentially be nil, treat as neutral
-        local teamId = world:spawn(Components.Team({
-            teamName = teamName;
-            allianceId = Teams.NameToId[teamInfo.allianceName] or Teams.NameToId["Neutral"];
-            playerIds = {};
-            color = teamInfo.color;
-            autoAssignable = teamInfo.autoAssignable;
-        }))
+        local teamId = world:spawn(
+            Components.Team({
+                teamName = teamName;
+                allianceId = Teams.NameToId[teamInfo.allianceName] or Teams.NameToId["Neutral"];
+                playerIds = {};
+                color = teamInfo.color;
+                autoAssignable = teamInfo.autoAssignable;
+            }),
+            Components.ReplicateToClient({
+                archetypes = {"Team"},
+            })
+        )
         Teams.NameToId[teamName] = teamId
         Teams.IdToName[teamId] = teamName
         Teams.IdToInfo[teamId] = teamInfo
@@ -75,6 +87,7 @@ function TeamProv:AxisStarted()
             end
         end
     end
+
 
     --[[
     print("Created alliances and teams")

@@ -12,7 +12,12 @@ function toolUtil.makePresetTool(toolName, props, world)
     for componentName, componentProps in pairs(toolInfo) do
         if Components[componentName] then
             local mergedProps = Llama.Dictionary.merge(componentProps, props)
-            world:insert(entityId, Components[componentName](mergedProps))
+            world:insert(entityId,
+                Components[componentName](mergedProps),
+                Components.ReplicateToClient({
+                    archetypes = {"ToolbarTool"}
+                })
+            )
             -- patch props
         else
             warn("toolUtil: Unknown component: " .. componentName)

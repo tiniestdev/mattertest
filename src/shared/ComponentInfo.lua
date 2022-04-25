@@ -34,15 +34,20 @@ ComponentInfo.Catalog = {
 		CLIENTCOMPONENT = true;
 		adornee = {};
 	},
-
-
-    -- SHARED COMPONENTS
 	Replicated = {
+		CLIENTCOMPONENT = true;
 		serverId = {};
 		scope = {};
 		identifier = {};
 	},
 
+	-- SERVER COMPONENTS
+	ReplicateToClient = {
+		SERVERCOMPONENT = true;
+		archetypes = {};
+	},
+
+    -- SHARED COMPONENTS
 	Instance = {
 		instance = {};
 	},
@@ -127,6 +132,7 @@ ComponentInfo.Catalog = {
 	Health = {
 		health = {},
 		maxHealth = {},
+		    -- like if it wanted to take on a different archetype
 	},
 	Storage = {
 		storableIds = {

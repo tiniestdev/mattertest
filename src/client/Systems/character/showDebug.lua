@@ -18,7 +18,7 @@ return function(world)
             world:insert(entityId, Components.ShowMatterDebug({
                 adornee = instanceC.instance.HumanoidRootPart,
             }))
-            print("INSERTED SHOW MATTER DEBUG INTO INSTANCE ", instanceC.instance.Name)
+            -- print("INSERTED SHOW MATTER DEBUG INTO INSTANCE ", instanceC.instance.Name)
         end)
     end
 end

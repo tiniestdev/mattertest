@@ -17,15 +17,15 @@ return function(world)
             world:insert(id, networkOwnedC:patch({
                 instances = Llama.Set.add(networkOwnedC.instances, unpack(physicsUtil.GetParts(skeletonCR.new.skeletonInstance)))
             }))
-            print("# ADDED", skeletonCR.new.skeletonInstance, #physicsUtil.GetParts(skeletonCR.new.skeletonInstance))
-            print(world:get(id, Components.NetworkOwned).instances)
+            -- print("# ADDED", skeletonCR.new.skeletonInstance, #physicsUtil.GetParts(skeletonCR.new.skeletonInstance))
+            -- print(world:get(id, Components.NetworkOwned).instances)
         else
             -- remove from networkowned list
             world:insert(id, networkOwnedC:patch({
                 instances = Llama.Set.subtract(networkOwnedC.instances, unpack(physicsUtil.GetParts(skeletonCR.old.skeletonInstance)))
             }))
-            print("# REMOVED")
-            print(world:get(id, Components.NetworkOwned).instances)
+            -- print("# REMOVED")
+            -- print(world:get(id, Components.NetworkOwned).instances)
         end
     end
     for id, networkOwnedCR, skeletonC in world:queryChanged(Components.NetworkOwned, Components.Skeleton) do
@@ -34,8 +34,8 @@ return function(world)
             world:insert(id, networkOwnedCR.new:patch({
                 instances = Llama.Set.add(networkOwnedCR.new.instances, unpack(physicsUtil.GetParts(skeletonC.skeletonInstance)))
             }))
-            print("# ADDED NETWONED")
-            print(world:get(id, Components.NetworkOwned).instances)
+            -- print("# ADDED NETWONED")
+            -- print(world:get(id, Components.NetworkOwned).instances)
         end
         if not networkOwnedCR.new then
             -- do nothing

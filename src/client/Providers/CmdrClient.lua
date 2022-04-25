@@ -14,7 +14,7 @@ function CmdrClient:AxisPrepare()
     -- print("CmdrClient: Axis prepare")
     for typeName, typeInfo in pairs(CmdrTypes.Catalog) do
         if typeInfo.ENUM ~= nil then
-            print(typeInfo.ENUM)
+            -- print(typeInfo.ENUM)
             Cmdr.Registry:RegisterType(typeName, Cmdr.Registry.Cmdr.Util.MakeEnumType(typeName, typeInfo.ENUM))
         else
             Cmdr.Registry:RegisterType(typeName, typeInfo)

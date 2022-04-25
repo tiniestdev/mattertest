@@ -74,6 +74,12 @@ function playerUtil.makePlayerEntity(player, world)
     if RunService:IsServer() then
         MatterUtil.setEntityId(player, playerEntityId)
         CollectionService:AddTag(player, "Player")
+        world:insert(
+            playerEntityId,
+            Components.ReplicateToClient({
+                archetypes = {"PlayerArchetype"}
+            })
+        )
     end
 
     return playerEntityId

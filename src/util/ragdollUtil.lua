@@ -15,6 +15,40 @@ ragdollUtil.RegularLimb_To_SkeletonLimb = {
     ["Head"] = "Head";
 }
 
+local R6_MOTOR6DS = {
+	{"Neck", "Torso"},
+	{"Left Shoulder", "Torso"},
+	{"Right Shoulder", "Torso"},
+	{"Left Hip", "Torso"},
+	{"Right Hip", "Torso"},
+}
+
+local function getMotorSet(model, motorSet)
+	local motors = {}
+
+	-- Disable all regular joints:
+	for _, params in pairs(motorSet) do
+		local part = model:FindFirstChild(params[2])
+		if part then
+			local motor = part:FindFirstChild(params[1])
+			if motor and motor:IsA("Motor6D") then
+				table.insert(motors, motor)
+			end
+		end
+	end
+
+	return motors
+end
+
+ragdollUtil.getMotors = function(model)
+	-- Note: We intentionally do not disable the root joint so that the mechanism root of the
+	-- character stays consistent when we break joints on the client. This avoid the need for the client to wait
+	-- for re-assignment of network ownership of a new mechanism, which creates a visible hitch.
+	local motors
+    motors = getMotorSet(model, R6_MOTOR6DS)
+	return motors
+end
+
 ragdollUtil.SkeletonLimb_To_RegularLimb = tableUtil.Flip(ragdollUtil.RegularLimb_To_SkeletonLimb)
 
 ragdollUtil.initSkeleton = function(character)
@@ -65,6 +99,9 @@ ragdollUtil.Ragdoll = function(char, skeleton)
 
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local torso = char:FindFirstChild("Torso")
+    local humanoid = char:FindFirstChild("Humanoid")
+	local animator = humanoid:FindFirstChildWhichIsA("Animator")
+
     if hrp and torso then
         local hrpWeld = physicsUtil.weldPartsExact(hrp, torso)
         hrpWeld.Name = "RagdollHRPWeld"
@@ -78,6 +115,9 @@ ragdollUtil.Ragdoll = function(char, skeleton)
 
     local hum = char:FindFirstChild("Humanoid")
     if hum then ragdollUtil.DisableHumanoid(hum) end
+	if animator then
+		animator:ApplyJointVelocities(ragdollUtil.getMotors(char))
+	end
 
     physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.RAGDOLL)
     physicsUtil.DeepSetCanCollide(skeleton, true)

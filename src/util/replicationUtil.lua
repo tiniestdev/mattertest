@@ -111,11 +111,15 @@ function replicationUtil.serializeArchetype(archetypeName, entityId, scope, iden
     local foundMethod = serializers.SerFunctions[archetypeName] and serializers.SerFunctions[archetypeName].serialize
 
     -- tag this entity just to indicate that this is replicated to the other side
-    replicationUtil.insertOrUpdateComponent(entityId, "Replicated", {
-        serverId = entityId,
-        scope = scope,
-        identifier = identifier,
-    }, world)
+
+    -- server should only be sending the relevant component data and the entity id
+    -- we don't need a component for this
+
+    -- replicationUtil.insertOrUpdateComponent(entityId, "Replicated", {
+    --     serverId = entityId,
+    --     scope = scope,
+    --     identifier = identifier,
+    -- }, world)
 
     if foundMethod then
         return foundMethod(entityId, scope, identifier, world, replicationUtil)
@@ -161,7 +165,28 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         -- CONSTRUCT SHELLS
     -- main entity, don't populate it yet because remapping must happen before that
     -- ...and remapping is all the way down there so we'll wait
-    local mainRecipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+    -- Check for the special case that it's our own player (don't make an entirely new entity, use our premade entity)
+    local mainRecipientId
+    local addOursComponent = false
+    if payload.archetypeSet then
+        if payload.archetypeSet["PlayerArchetype"] then
+            if payload.components["Player"] and payload.components["Player"].player == Players.LocalPlayer then
+                mainRecipientId = replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+                addOursComponent = true -- redundant, but here for consistency
+                -- i think we already add an "ours" component when we initialize our player entity clientside
+            end
+        end
+        if payload.archetypeSet["CharacterArchetype"] then
+            local myPlayerId = replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+            if payload.components["Character"] and payload.components["Character"].playerId == myPlayerId then
+                addOursComponent = true
+            end
+        end
+    end
+    if not mainRecipientId then
+        mainRecipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+    end
+
     replicationUtil.mapSenderIdToRecipientId(payload.entityId, mainRecipientId)
     replicationUtil.setRecipientIdScopeIdentifier(mainRecipientId, payload.scope, payload.identifier)
     -- secondary entities
@@ -199,14 +224,18 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         local refSetProps = matterUtil.getReferenceSetPropertiesOfComponent(componentName, payloadComponentData)
         local updatedProps = {}
         for _, refPropName in ipairs(refProps) do
-            updatedProps[refPropName] = replicationUtil.senderIdToRecipientId(payloadComponentData[refPropName])
+            if payloadComponentData[refPropName] then
+                updatedProps[refPropName] = replicationUtil.senderIdToRecipientId(payloadComponentData[refPropName])
+            end
             -- print("Remapped ID of ", refPropName, payloadComponentData[refPropName], " to ", updatedProps[refPropName])
         end
         for _, refSetPropName in ipairs(refSetProps) do
             local newRefSet = {}
-            for refId, _ in pairs(payloadComponentData[refSetPropName]) do
-                newRefSet[replicationUtil.senderIdToRecipientId(refId)] = true
-                -- print("Remapped ID of ", refSetPropName, refId, " to ", replicationUtil.senderIdToRecipientId(refId))
+            if payloadComponentData[refSetPropName] then
+                for refId, _ in pairs(payloadComponentData[refSetPropName]) do
+                    newRefSet[replicationUtil.senderIdToRecipientId(refId)] = true
+                    -- print("Remapped ID of ", refSetPropName, refId, " to ", replicationUtil.senderIdToRecipientId(refId))
+                end
             end
             updatedProps[refSetPropName] = newRefSet
         end
@@ -220,6 +249,23 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
     -- Now apply the remapped component data and hydrate em all up
     for componentName, componentData in pairs(remappedComponentsData) do
         replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+    end
+
+    -- Because this was replicated, make component that has its replication data
+    replicationUtil.insertOrUpdateComponent(mainRecipientId, "Replicated", {
+        serverId = payload.entityId,
+        scope = payload.scope,
+        identifier = payload.identifier,
+    }, world)
+
+    if addOursComponent then
+        replicationUtil.insertOrUpdateComponent(mainRecipientId, "Ours", {}, world)
+    end
+
+    print("Finished deserializing archetype " .. archetypeName, "for id ", mainRecipientId)
+    print(remappedComponentsData)
+    if remappedComponentsData["Instance"] then
+        matterUtil.setEntityId(remappedComponentsData.Instance.instance, mainRecipientId)
     end
 
     return mainRecipientId
@@ -282,8 +328,17 @@ function replicationUtil.replicateServerEntityArchetypeTo(player, entityId, arch
         -- print("ReplicationUtil: Sent payload ", payload)
         Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, archetypeName, payload)
     else
-        warn("ReplicationUtil: Tried to replicate archetype ", archetypeName, " to ", entityId, " but it doesn't have all the components")
+        warn("ReplicationUtil: Tried to replicate archetype ", archetypeName, " of ", entityId, " but it is missing the following components")
+        for i,v in ipairs(matterUtil.getMissingComponentsOfArchetype(entityId, archetypeName, world)) do
+            warn("ReplicationUtil: Missing component ", v)
+        end
         error(debug.traceback())
+    end
+end
+
+function replicationUtil.replicateServerEntityArchetypeToAll(entityId, archetypeName, world)
+    for i, player in ipairs(Players:GetPlayers()) do
+        replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world)
     end
 end
 
