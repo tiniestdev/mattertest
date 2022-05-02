@@ -8,6 +8,8 @@ local Llama = require(ReplicatedStorage.Packages.llama)
 local Archetypes = require(ReplicatedStorage.Archetypes)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
+local Set = Llama.Set
+
 local matterUtil = {}
 
 matterUtil.instanceToComponentData = {
@@ -262,6 +264,7 @@ function matterUtil.getReferenceSetPropertiesOfComponent(componentName, componen
     end
     return propertyNames
 end
+
 function matterUtil.getReferencePropertiesOfComponent(componentName, componentData)
     local propertyNames = {}
     local componentPropertyInfos = ComponentInfo.Catalog[componentName]
@@ -479,6 +482,173 @@ function matterUtil.editComponent(world, entityId, componentName, fieldName, fie
         }))
     end
     return "Done\n"
+end
+
+function matterUtil.getPlayerFromCharacterEntity(charEntityId, world)
+    local charC = world:get(charEntityId, Components.Character)
+    if not charC then return end
+    local playerId = charC.playerId
+    if not playerId then return end
+    local playerC = world:get(playerId, Components.Player)
+    if not playerC then return end
+
+    return playerC.player
+end
+
+function matterUtil.camelCaseWord(word)
+    local first = string.sub(word, 1, 1)
+    local rest = string.sub(word, 2)
+    return string.lower(first) .. rest
+end
+
+function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, collectiveComponentName, canBeAddedCallback, canBeRemovedCallback)
+    -- Terminology:
+    -- ATOM = entity that will link to a collective
+    -- COLLECTIVE = entity that will be linked to by many ATOMS
+
+    local DEBUG_PRINT = false
+
+    local atomsRefName = matterUtil.camelCaseWord(atomComponentName) .. "Ids"
+    local collectiveRefName = matterUtil.camelCaseWord(collectiveComponentName ) .. "Id"
+
+    -- This section deals with *changing the collectives* to react to an ATOM attaching itself to them.
+    -- Or the opposite, an ATOM detaching itself from a collective.
+    for atomId, atomCR in world:queryChanged(Components[atomComponentName]) do
+        -- ensure we're allowed to reconcile and that new/old collectiveids haven't changed
+        if atomCR.old and atomCR.new then
+            local newCollectiveId = atomCR.new[collectiveRefName]
+            local oldCollectiveId = atomCR.old[collectiveRefName]
+            if atomCR.new.doNotReconcile then
+                world:insert(atomId, atomCR.new:patch({
+                    doNotReconcile = false
+                }))
+                continue
+            end
+            if newCollectiveId == oldCollectiveId then continue end
+        end
+
+        -- Add atom to the new collective.
+        if atomCR.new then
+            local newCollectiveId = atomCR.new[collectiveRefName]
+            if newCollectiveId then
+                local newCollectiveC = world:get(newCollectiveId, Components[collectiveComponentName])
+                if canBeAddedCallback and canBeAddedCallback(atomId, newCollectiveId, world) or true then
+                    world:insert(newCollectiveId, newCollectiveC:patch({
+                        [atomsRefName] = Set.add(newCollectiveC[atomsRefName] or {}, atomId),
+                    }))
+                    if DEBUG_PRINT then
+                        print("Added atom " , atomId , " to collective " , newCollectiveId)
+                        if newCollectiveId then
+                            print("Collective ", newCollectiveId, " add: ", world:get(newCollectiveId, Components[collectiveRefName]))
+                        end
+                    end
+                else
+                    warn("Could not store atom in collective.")
+                    warn("Restoring old state:", atomCR.old)
+                    -- reject our own change
+                    world:insert(atomId, atomCR.old)
+                    continue
+                end
+            end
+        end
+
+        -- Remove from the old collective.
+        if atomCR.old then
+            local oldCollectiveId = atomCR.old[collectiveRefName]
+            if oldCollectiveId then
+                if world:contains(oldCollectiveId) then
+                    local oldCollectiveC = world:get(oldCollectiveId, Components[collectiveComponentName])
+                    if canBeRemovedCallback and canBeRemovedCallback(atomId, oldCollectiveId, world) or true then
+                        world:insert(oldCollectiveId, oldCollectiveC:patch({
+                            [atomsRefName] = Set.subtract(oldCollectiveC[atomsRefName] or {}, atomId),
+                        }))
+                        if DEBUG_PRINT then
+                            print("Removed atom " , atomId , " from collective " , oldCollectiveId)
+                            if oldCollectiveId then
+                                print("Collective ", oldCollectiveId, " rem: ", world:get(oldCollectiveId, Components[collectiveRefName]))
+                            end
+                        end
+                    else
+                        warn("Could not remove atom from collective. Is it even in the collective?")
+                        -- not really much to reject our own change since it wasn't there in the first place
+                    end
+                else
+                    -- collective is actually completely despawned, entity does not exist
+                    -- if it's still attached to the oldCollective and never had its collectiveId changed, then
+                    -- it's probably being despawned by removalCollective.
+                    -- so there is no oldCollective to change. we do nothing
+                    -- print("Collective entity doesn't exist anymore")
+                end
+            end
+        end
+    end
+
+    -- Listen to collective events
+    -- This section deals with *changing the ATOMS* to react to a collective adding them.
+    -- Or the opposite, a collective removing them.
+    for collectiveId, collectiveCR in world:queryChanged(Components[collectiveComponentName]) do
+        -- Collective has changed.
+        local completelyNewSet = {}
+        if collectiveCR.new then
+            completelyNewSet = Set.filter(collectiveCR.new[atomsRefName] or {}, function(value)
+                if collectiveCR.old then
+                    return not Set.has(collectiveCR.old[atomsRefName] or {}, value)
+                else
+                    return true
+                end
+            end)
+        end
+        local deletedFromOldSet = {}
+        if collectiveCR.old then
+            deletedFromOldSet = Set.filter(collectiveCR.old[atomsRefName] or {}, function(value)
+                if collectiveCR.new then
+                    return not Set.has(collectiveCR.new[atomsRefName] or {}, value)
+                else
+                    return true
+                end
+            end)
+        end
+
+        -- Reconcile all the atoms.
+        --[[
+            Also, prevent them from re-reconciling after the fact,
+            because their data has already been edited.
+            If they check themselves, they'll find that they can't "re-insert" themselves,
+            and will remove themselves from the collective.
+        ]]
+        for atomId, _ in pairs(completelyNewSet) do
+            local atomC = world:get(atomId, Components[atomComponentName])
+            world:insert(atomId, atomC:patch({
+                [collectiveRefName] = collectiveId,
+                ["doNotReconcile"] = true,
+            }))
+            if DEBUG_PRINT then
+                print("Forced atom " , atomId , " into collective " , collectiveId)
+                if collectiveId then
+                    print("Collective ", collectiveId, " add: ", world:get(collectiveId, Components[collectiveRefName]))
+                end
+            end
+        end
+        for atomId, _ in pairs(deletedFromOldSet) do
+            if world:contains(atomId) then
+                local atomC = world:get(atomId, Components[atomComponentName])
+                world:insert(atomId, atomC:patch({
+                    [collectiveRefName] = Matter.None,
+                    ["doNotReconcile"] = true,
+                }))
+                if DEBUG_PRINT then
+                    print("Evicted atom " , atomId , " from collective " , collectiveId)
+                    if collectiveId then
+                        print("Collective ", collectiveId, " add: ", world:get(collectiveId, Components[collectiveRefName]))
+                    end
+                end
+            else
+                -- the atom entity literally does not exist anymore
+                -- there is nothing to change, we can't change a deleted entity
+                -- print("Storable Entity does not exist anymore")
+            end
+        end
+    end
 end
 
 --[[

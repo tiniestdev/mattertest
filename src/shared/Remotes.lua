@@ -11,6 +11,15 @@ local Definitions = {
     }),
     RequestEquipEquippable = Net.Definitions.ServerAsyncFunction({}),
     RequestReplicateArchetype = Net.Definitions.ServerAsyncFunction({}),
+    RequestGrab = Net.Definitions.ServerAsyncFunction({}),
+
+    -- This asks for a list of all replicated entities, usually called once per player session.
+    RequestReplicatedEntites = Net.Definitions.ServerAsyncFunction({}),
+    -- This asks the server to actually *replicate* a list of entities to a specific player.
+    RequestReplicateEntities = Net.Definitions.ClientToServerEvent({
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60, })
+    }),
+    -- RequestReplicateEntities = Net.Definitions.ServerAsyncFunction({}),
 
     ProposeRagdollState = Net.Definitions.ServerAsyncFunction({}),
 

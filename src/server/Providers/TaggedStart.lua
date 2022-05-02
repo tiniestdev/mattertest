@@ -26,9 +26,10 @@ local tagToTask = {
     Grabbable = function(instance, world)
         return world:spawn(
             Components.Instance({
-                instance = instance
+                instance = instance,
             }),
             Components.Grabbable({
+                grabbableInstance = instance,
             }),
             Components.ReplicateToClient({
                 archetypes = {"GrabbableArchetype"}

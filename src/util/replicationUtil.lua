@@ -262,8 +262,8 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         replicationUtil.insertOrUpdateComponent(mainRecipientId, "Ours", {}, world)
     end
 
-    print("Finished deserializing archetype " .. archetypeName, "for id ", mainRecipientId)
-    print(remappedComponentsData)
+    -- print("Finished deserializing archetype " .. archetypeName, "for id ", mainRecipientId)
+    -- print(remappedComponentsData)
     if remappedComponentsData["Instance"] then
         matterUtil.setEntityId(remappedComponentsData.Instance.instance, mainRecipientId)
     end

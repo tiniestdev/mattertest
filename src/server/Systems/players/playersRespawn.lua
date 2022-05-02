@@ -1,10 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
-local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 
-local RequestRespawnEvent = MatterUtil.NetSignalToEvent("RequestRespawn", Remotes)
+local RequestRespawnEvent = matterUtil.NetSignalToEvent("RequestRespawn", Remotes)
 
 return function(world)
     for i, player in Matter.useEvent(RequestRespawnEvent, "Event") do

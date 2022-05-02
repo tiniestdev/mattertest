@@ -15,6 +15,17 @@ function localUtil.getMyPlayerEntityId(world)
     -- return 
 end
 
+function localUtil.getCharComponent(componentName, world)
+    local charId = localUtil.getMyCharacterEntityId(world)
+    return world:get(charId, Components[componentName])
+end
+
+function localUtil.getSkeletonInstance(world)
+    local charId = localUtil.getMyCharacterEntityId(world)
+    local skeletonC = world:get(charId, Components.Skeleton)
+    return skeletonC.skeletonInstance
+end
+
 function localUtil.getMyCharacterEntityId(world)
     for id, characterC, oursC in world:query(Components.Character, Components.Ours) do
         return id

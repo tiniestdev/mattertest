@@ -74,12 +74,15 @@ ComponentInfo.Catalog = {
 			referenceToArchetype = "Grabbable";
 		};
 		attachmentInstance = {};
+		grabbableAttachmentInstance = {};
+		preferPosition = {}; -- for players who click a specific point on the grabbable part
 	},
 	Grabbable = {
 		grabberIds = {
             isReferenceSet = true;
             referenceToArchetype = "Grabber";
 		};
+		grabbableInstance = {};
 	},
 
 	-- Applied to objects associated with a certain team or alliance.

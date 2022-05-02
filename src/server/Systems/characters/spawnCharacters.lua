@@ -38,6 +38,10 @@ return function(world)
         hum.BreakJointsOnDeath = false
         hum.RequiresNeck = false
 
+        local grabberAtt = Instance.new("Attachment")
+        grabberAtt.Name = "Grabber"
+        grabberAtt.Parent = character:WaitForChild("Torso")
+
         local charEntityId = world:spawn(
             Components.ReplicateToClient({
                 archetypes = {"CharacterArchetype"}
@@ -72,7 +76,9 @@ return function(world)
                 equippableId = nil,
             }),
             Components.Grabber({
-                equippableId = nil,
+                grabbableId = nil,
+                attachmentInstance = grabberAtt,
+                grabbableAttachmentInstance = nil,
             }),
             Components.Walkspeed({
                 walkspeed = 16,
