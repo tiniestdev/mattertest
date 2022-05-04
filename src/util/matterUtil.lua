@@ -226,16 +226,49 @@ end
 
 function matterUtil.replicateChangedArchetypes(archetypeName, world)
     local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+
+    local doNotReplicateEntities = {}
+    local defaultEntities = {}
+
     for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, Components.ReplicateToClient)) do
-        -- print("Id ", id, " is an archetype ", archetypeName, " that changed")
-        local componentsChanged = false
-        for componentName, cr in pairs(crs) do
-            componentsChanged = true
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        
+        if rtcC.doNotReplicateTo then
+            table.insert(doNotReplicateEntities, id)
+        else
+            table.insert(defaultEntities, id)
         end
-        if componentsChanged then
-            replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
-            -- print("RR2: replicated entity " .. id .. " to archetype " .. archetypeName)
+
+        if not (rtcC.doNotReplicateTo or rtcC.doNotReplicateRecognized) then
+            print("!! replicating", id)
+            local componentsChanged = false
+            for componentName, cr in pairs(crs) do
+                componentsChanged = true
+            end
+            if componentsChanged then
+                replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
+            end
+        else
+            print("did not replicate ", id)
         end
+    end
+
+    for _, id in ipairs(doNotReplicateEntities) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        world:insert(id, rtcC:patch({
+            doNotReplicateTo = Matter.None,
+            doNotReplicateRecognized = true,
+        }))
+        print("marked", id, " as recognized")
+    end
+
+    for _, id in ipairs(defaultEntities) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        world:insert(id, rtcC:patch({
+            doNotReplicateTo = Matter.None,
+            doNotReplicateRecognized = false,
+        }))
+        print("demarked", id, " as unrecognized")
     end
 end
 

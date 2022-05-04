@@ -11,6 +11,8 @@ local ragdollUtil = require(ReplicatedStorage.Util.ragdollUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 local Rx = require(ReplicatedStorage.Packages.rx)
 
+local Assets = ReplicatedStorage.Assets
+
 local Teams = require(ReplicatedStorage.Teams)
 local Constants = require(ReplicatedStorage.Constants)
 local TeamUtil = require(ReplicatedStorage.Util.teamUtil)
@@ -40,6 +42,9 @@ return function(world)
 
         local grabberAtt = Instance.new("Attachment")
         grabberAtt.Name = "Grabber"
+        local grabberFX = Assets.Particles.GrabberFX:Clone()
+        grabberFX.Parent = grabberAtt
+        grabberFX.Enabled = false
         grabberAtt.Parent = character:WaitForChild("Torso")
 
         local charEntityId = world:spawn(
@@ -79,6 +84,7 @@ return function(world)
                 grabbableId = nil,
                 attachmentInstance = grabberAtt,
                 grabbableAttachmentInstance = nil,
+                grabberOffset = Vector3.new(0,0,0),
             }),
             Components.Walkspeed({
                 walkspeed = 16,

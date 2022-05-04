@@ -1,10 +1,31 @@
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local localUtil = require(ReplicatedStorage.Util.localUtil)
 local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local grabUtil = {}
+
+grabUtil.MaxGrabDistance = 4
+
+grabUtil.getGrabberOffsetCastParams = function(world, grabberC)
+    local characterId = localUtil.getMyCharacterEntityId(world)
+    local skeletonC = world:get(characterId, Components.Skeleton)
+    local grabbableC = world:get(grabberC.grabbableId, Components.Grabbable)
+    local grabbableInstance = grabbableC.grabbableInstance
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {
+        Players.LocalPlayer.Character,
+        skeletonC.skeletonInstance,
+        grabbableInstance,
+    }
+
+    return params
+end
 
 grabUtil.getGrabbableEntity = function(instance, world)
     local grabbableId = matterUtil.getEntityId(instance)
@@ -13,7 +34,7 @@ grabUtil.getGrabbableEntity = function(instance, world)
         return nil
     end
     local grabbableC = world:get(grabbableId, Components.Grabbable)
-    if not grabbableC then 
+    if not grabbableC then
         -- warn("Could not find grabbable component for instance: ", instance)
         return nil
     end
@@ -31,6 +52,16 @@ grabUtil.getGrabRopeState = function(grabberId, world)
     return storage
 end
 
+grabUtil.getServerOwnedGrabConnections = function(instance)
+    local connections = {}
+    for i,v in ipairs(instance:GetChildren()) do
+        if v.Name == "GrabConnection" and CollectionService:HasTag(v, "ServerOwned") then
+            table.insert(connections, v)
+        end
+    end
+    return connections
+end
+
 grabUtil.manageConnection = function(grabberId, grabberC, world)
     local connectionState = grabUtil.getGrabRopeState(grabberId, world)
     -- print("invoked state: ", connectionState)
@@ -40,7 +71,6 @@ grabUtil.manageConnection = function(grabberId, grabberC, world)
         if connectionState.grabbableAtt then
             -- print("stop.")
         else
-            print("go.")
             -- automatically generate one and link to it
             local grabbableAttachment = Instance.new("Attachment")
             -- place the attachment on the surface of the grabbable, but
@@ -81,20 +111,22 @@ grabUtil.manageConnection = function(grabberId, grabberC, world)
             newConnection.Name = "GrabConnection"
             newConnection.Attachment0 = grabberC.attachmentInstance
             newConnection.Attachment1 = grabbableAttachment
-            newConnection.MaxForce = 2000
+            newConnection.MaxForce = 4000
             newConnection.MaxVelocity = 100
-            newConnection.Responsiveness = 10
+            newConnection.Responsiveness = 30
             newConnection.ReactionForceEnabled = true
-            -- newConnection.Length = 2
-            -- newConnection.Restitution = 0.2
-            -- newConnection.Visible = true
-            newConnection.Parent = grabberC.attachmentInstance
+            
+            if RunService:IsServer() then
+                newConnection.Enabled = false
+                CollectionService:AddTag(newConnection, "ServerOwned")
+            else
+                newConnection.Enabled = true
+            end
+            newConnection.Parent = grabbableInstance
 
             connectionState.connectionInstance = newConnection
             connectionState.grabberAtt = grabberC.attachmentInstance
             connectionState.grabbableAtt = grabbableAttachment
-
-            print("connected.")
         end
     else
         -- print("LETTING GO!", connectionState)

@@ -54,7 +54,7 @@ function MatterStart:AxisStarted()
             table.insert(replicated, id)
             count = count + 1
         end
-        print("HHH:", count, replicated)
+        -- print("HHH:", count, replicated)
         return {count = count, listOfServerIds = replicated}
     end)
 

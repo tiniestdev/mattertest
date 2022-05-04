@@ -10,6 +10,7 @@ local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local teamUtil = require(ReplicatedStorage.Util.teamUtil)
 local playerUtil = require(ReplicatedStorage.Util.playerUtil)
 local uiUtil = require(ReplicatedStorage.Util.uiUtil)
+local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 
 return function(world)
     for id, grabbableCR in world:queryChanged(Components.Grabbable) do
@@ -30,11 +31,20 @@ return function(world)
                 end
             end
 
-            print("singularPlayer: ", singularPlayer)
+            -- print("singularPlayer: ", singularPlayer)
             if singularPlayer then
                 grabbableInstance:SetNetworkOwner(singularPlayer)
+                -- Disable server influence and leave it all to the client.
+                -- the alignpositions  are made both on client and server.... we should tag em so server ones are disabled on client
+                for i,v in ipairs(grabUtil.getServerOwnedGrabConnections(grabbableInstance)) do
+                    v.Enabled = false
+                end
             else
+                -- Force enable server influence
                 grabbableInstance:SetNetworkOwner(nil)
+                for i,v in ipairs(grabUtil.getServerOwnedGrabConnections(grabbableInstance)) do
+                    v.Enabled = true
+                end
             end
             -- local foundPlayer = matterUtil.getPlayerFromCharacterEntity(grabberId, world)
             -- grabbableInstance:SetNetworkOwner(foundPlayer)

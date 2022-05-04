@@ -19,7 +19,10 @@ local Definitions = {
     RequestReplicateEntities = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60, })
     }),
-    -- RequestReplicateEntities = Net.Definitions.ServerAsyncFunction({}),
+    -- client to server grabber offset update
+    ReplicateGrabberOffset = Net.Definitions.ClientToServerEvent({
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 150, })
+    }),
 
     ProposeRagdollState = Net.Definitions.ServerAsyncFunction({}),
 

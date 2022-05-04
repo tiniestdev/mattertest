@@ -11,7 +11,7 @@ function uiUtil.storableToFusionProps(storableId, world)
     local equippableC = world:get(storableId, Components.Equippable)
 
     local storableName = "--"
-    if corporealC then
+    if corporealC and corporealC.instance then
         storableName = corporealC.instance.Name
     end
     if equippableC then
