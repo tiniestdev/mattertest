@@ -118,44 +118,6 @@ function MatterStart:AxisStarted()
         end
     end)
 
-    Remotes.Server:OnFunction("RequestGrab", function(player, instance, grabLocalPos)
-        local grabberId = matterUtil.getCharacterIdOfPlayer(player, world)
-        local grabberC = world:get(grabberId, Components.Grabber)
-
-        if instance then
-            -- print("Server grabbing.")
-            local grabbableId = grabUtil.getGrabbableEntity(instance, world)
-
-            if not grabberId then warn("no grabberId") return false end
-            if not grabberC then warn("no grabberC") return false end
-            if not grabbableId then warn("no grabbableId") return false end
-
-            -- validity check
-            if true then
-                world:insert(grabberId, grabberC:patch({
-                    grabbableId = grabbableId,
-                    preferLocalPosition = grabLocalPos,
-                }))
-                -- print("Changed serverside to equip id ", world:get(equipperId, Components.Equipper).equippableId)
-                return true
-            else
-                -- print("Reject change")
-                -- world:insert(equipperId, equipperC:patch({
-                --     equippableId = nil,
-                -- }))
-                -- it'll revert clientside, no need to do anything serverside
-                return false
-            end
-        else
-            -- let go
-            -- print("Server let go.")
-            world:insert(grabberId, grabberC:patch({
-                grabbableId = Matter.None,
-                preferLocalPosition = Matter.None,
-            }))
-            return true
-        end
-    end)
 end
 
 return MatterStart

@@ -26,6 +26,20 @@ ComponentInfo.Catalog = {
 	Ours = {
         CLIENTCOMPONENT = true;
     },
+		-- use this component to force an entity to not be changed by
+		-- server replication even if the server replicates changes to its state
+		-- set the property lockLinks to make it so any entity with a reference to it
+		-- will also be forced to maintain the same relationship with the entity
+		-- that it is locked to
+		-- should be removed if you wish to allow replication again
+
+		-- actually maybe instead of a component just have it be a field in a component
+		-- so it can be applied to individual components instead of affecting the entire entity and locking ALL its components
+	ClientLocked = {
+        CLIENTCOMPONENT = true;
+		clientLocked = {};
+		lockLinks = {};
+    },
 	CheckArchetypes = {
         CLIENTCOMPONENT = true;
         archetypeSet = {};

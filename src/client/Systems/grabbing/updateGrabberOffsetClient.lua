@@ -25,8 +25,9 @@ return function(world)
             if not hit then return end
 
             local grabberOriginCF = grabberC.attachmentInstance.Parent.CFrame
-            local direction = (hit - grabberOriginCF.Position).Unit
-            local grabDistance = math.clamp((hit - grabberOriginCF.Position).Magnitude, 0, 4)
+            local rayOriginCF = head.CFrame
+            local direction = (hit - rayOriginCF.Position).Unit
+            local grabDistance = math.clamp((hit - rayOriginCF.Position).Magnitude, 0, 4)
             local newWorldOffset = direction * grabDistance
 
             local newLocalOffset = grabberOriginCF:VectorToObjectSpace(newWorldOffset)
@@ -41,7 +42,7 @@ return function(world)
     for grabberId, grabberCR in world:queryChanged(Components.Grabber, Components.Ours) do
         if grabberCR.new then
             if grabberCR.new.grabbableId then
-                print("got grabbableId:", grabberId, grabberCR.new.grabbableId, grabberCR)
+                print("got grabbableId:", grabberId, grabberCR.new.grabbableId)
                 local newOffset = world:get(grabberId, Components.Grabber).grabberOffset
                 grabberCR.new.attachmentInstance.Position = newOffset
                 grabberCR.new.attachmentInstance.GrabberFX.Enabled = true
@@ -50,7 +51,7 @@ return function(world)
                     Remotes.Client:Get("ReplicateGrabberOffset"):SendToServer(newOffset)
                 end
             else
-                print("no grabbableId:", grabberId, grabberCR)
+                print("no grabbableId:", grabberId)
                 grabberCR.new.attachmentInstance.GrabberFX.Enabled = false
             end
         end
