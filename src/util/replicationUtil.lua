@@ -187,6 +187,7 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         mainRecipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
     end
 
+
     replicationUtil.mapSenderIdToRecipientId(payload.entityId, mainRecipientId)
     replicationUtil.setRecipientIdScopeIdentifier(mainRecipientId, payload.scope, payload.identifier)
     -- secondary entities
@@ -247,8 +248,14 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
     end
 
     -- Now apply the remapped component data and hydrate em all up
+    -- THE PART WHERE ALL THE COMPONENT DATA IS ACTUALLY REPLICATED INTO THE ENTITY
     for componentName, componentData in pairs(remappedComponentsData) do
-        replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+        -- check if we should replicate...
+		-- clientLocked = {};
+		-- lockLinks = {};
+        if not world:get(mainRecipientId, Components[componentName]).clientLocked then
+            replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+        end
     end
 
     -- Because this was replicated, make component that has its replication data
