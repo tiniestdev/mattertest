@@ -20,7 +20,10 @@ return function(world)
             if not grabberIds then continue end
 
             local singularPlayer = nil
+            local noGrabbers = true
+
             for grabberId, v in pairs(grabberIds) do
+                noGrabbers = false
                 local player = matterUtil.getPlayerFromCharacterEntity(grabberId, world)
                 if player then
                     if singularPlayer then
@@ -31,21 +34,43 @@ return function(world)
                 end
             end
 
-            -- print("singularPlayer: ", singularPlayer)
-            if singularPlayer then
-                grabbableInstance:SetNetworkOwner(singularPlayer)
-                -- Disable server influence and leave it all to the client.
-                -- the alignpositions  are made both on client and server.... we should tag em so server ones are disabled on client
-                for i,v in ipairs(grabUtil.getServerOwnedGrabConnections(grabbableInstance)) do
-                    v.Enabled = false
-                end
+            if noGrabbers then
+                print("NO GRABBERS, AUTO")
+                grabbableInstance:SetNetworkOwnershipAuto()
+                world:remove(id, Components.NetworkOwned)
             else
-                -- Force enable server influence
-                grabbableInstance:SetNetworkOwner(nil)
-                for i,v in ipairs(grabUtil.getServerOwnedGrabConnections(grabbableInstance)) do
-                    v.Enabled = true
+                -- grabbableInstance:SetNetworkOwnershipAuto(false)
+                if singularPlayer then
+                    print("SINGULAR PLAYER: ", singularPlayer)
+                    task.delay(0, function()
+                        grabbableInstance:SetNetworkOwner(singularPlayer)
+                    end)
+                    world:insert(id, Components.NetworkOwned({
+                        networkOwner = singularPlayer,
+                        instances = grabbableInstance,
+                    }));
+                    -- Disable server influence and leave it all to the client.
+                    -- the alignpositions  are made both on client and server.... we should tag em so server ones are disabled on client
+                    for i,v in ipairs(grabUtil.getServerOwnedGrabConnections(grabbableInstance)) do
+                        v.Enabled = false
+                    end
+                else
+                    -- Force enable server influence
+                    print("NO SINGULAR PLAYER")
+                    task.delay(0, function()
+                        grabbableInstance:SetNetworkOwner()
+                    end)
+                    world:insert(id, Components.NetworkOwned({
+                        networkOwner = Matter.None,
+                        instances = grabbableInstance,
+                    }));
+                    for i,v in ipairs(grabUtil.getServerOwnedGrabConnections(grabbableInstance)) do
+                        v.Enabled = true
+                    end
                 end
             end
+
+            -- print("singularPlayer: ", singularPlayer)
             -- local foundPlayer = matterUtil.getPlayerFromCharacterEntity(grabberId, world)
             -- grabbableInstance:SetNetworkOwner(foundPlayer)
         end

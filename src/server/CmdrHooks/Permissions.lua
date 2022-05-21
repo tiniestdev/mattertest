@@ -11,8 +11,10 @@ local admins = {
 
 return function(registry)
     registry:RegisterHook("BeforeRun", function(context)
-        if lockedGroups[context.Group] and not admins[context.Executor.UserId] then
-            return "Insufficient permissions for userid " .. context.Executor.UserId
+        if context.Executor.UserId > 0 then
+            if lockedGroups[context.Group] and not admins[context.Executor.UserId] then
+                return "Insufficient permissions for userid " .. context.Executor.UserId
+            end
         end
     end)
 end

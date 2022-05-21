@@ -5,14 +5,9 @@ local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local localUtil = {}
 
 function localUtil.getMyPlayerEntityId(world)
-    local player = Players.LocalPlayer
-    return player.UserId
-    -- local player = Players.LocalPlayer
-    -- local playerC = world:get(player.UserId, Components.Player)
-    -- if not playerC then
-    --     return nil
-    -- end
-    -- return 
+    for id, playerC, oursC in world:query(Components.Player, Components.Ours) do
+        return id
+    end
 end
 
 function localUtil.getCamera()
@@ -50,9 +45,16 @@ function localUtil.getSkeletonInstance(world)
 end
 
 function localUtil.getMyCharacterEntityId(world)
-    for id, characterC, oursC in world:query(Components.Character, Components.Ours) do
-        return id
+    local playerC = world:get(localUtil.getMyPlayerEntityId(world), Components.Player)
+    if not playerC then
+        error("WTF: Could not find player component:\n" .. debug.traceback())
+        return nil
     end
+    return playerC.characterId
+    -- okay wtf
+    -- for id, characterC, oursC in world:query(Components.Character, Components.Ours) do
+    --     return id
+    -- end
 end
 
 function localUtil.castMouseRangedHitWithParams(params, range, origin)

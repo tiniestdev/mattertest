@@ -120,7 +120,7 @@ function MatterClient:AxisStarted()
         if not timeUtil.getDebounce("equipDebounce", 0.4) then return end
 
         -- make sure we're actually an equipper
-        local myCharacterId = world:get(localPlayerId, Components.Player).characterId
+        local myCharacterId = localUtil.getMyCharacterEntityId(world)
         if not myCharacterId then warn("wtf no characterid entity??") end
         local equipperC = world:get(myCharacterId, Components.Equipper)
         local oldEquippableId = equipperC.equippableId

@@ -9,6 +9,7 @@ local Matter = require(ReplicatedStorage.Packages.matter)
 local localUtil = require(ReplicatedStorage.Util.localUtil)
 local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 local Components = require(ReplicatedStorage.components)
+local Llama = require(ReplicatedStorage.Packages.llama)
 
 local Grab = {}
 
@@ -53,15 +54,34 @@ function Grab:AxisStarted()
                     local grabbableInstance = raycastResult.Instance
                     local grabbableId = grabUtil.getGrabbableEntity(grabbableInstance, world)
                     if not grabbableId then return end
+                    local grabbableC = world:get(grabbableId, Components.Grabbable)
                     local grabberC = localUtil.getCharComponent("Grabber", world);
                     if not grabberC then error("WTFF") return end
                     local preferLocalPosition = grabbableInstance.CFrame:PointToObjectSpace(raycastResult.Position)
 
-                    print("Grab: GRABBED")
+                    -- world:insert(characterId, grabberC:patch({
+                    --     grabbableId = grabbableId,
+                    --     preferLocalPosition = preferLocalPosition,
+                    -- }))
+
                     world:insert(characterId, grabberC:patch({
                         grabbableId = grabbableId,
                         preferLocalPosition = preferLocalPosition,
+                    }), Components.ClientLocked({
+                        clientLocked = true,
+                        lockLinks = true,
                     }))
+
+                    -- world:insert(grabbableId,
+                    --     Components.ClientLocked({
+                    --         clientLocked = true,
+                    --         lockLinks = true,
+                    --     }),
+                    --     grabbableC:patch({
+                    --         Llama.Set.add(grabbableC.grabberIds, characterId),
+                    --     })
+                    -- )
+                    print("Locked onto grabbable " .. grabbableId)
 
                     Remotes.Client:Get("RequestGrab"):CallServerAsync(grabbableInstance, preferLocalPosition):andThen(function(response)
                         if response then
@@ -90,11 +110,32 @@ function Grab:AxisStarted()
             -- release ANYTHING
             -- TODO
             local characterId = localUtil.getMyCharacterEntityId(world)
-            print(characterId)
+            print("character id is ", characterId)
             local grabberC = world:get(characterId, Components.Grabber)
+
+            -- world:insert(characterId, grabberC:patch({
+            --     grabbableId = Matter.None,
+            -- }))
+            -- world:insert(oldGrabbableId,
+            --     grabbableC:patch({
+            --         Llama.Set.subtract(grabbableC.grabberIds, characterId),
+            --     })
+            -- )
             world:insert(characterId, grabberC:patch({
                 grabbableId = Matter.None,
             }))
+
+            task.delay(0.5, function()
+                if world:get(characterId, Components.Grabber).grabbableId == nil then
+                    world:insert(characterId,
+                        Components.ClientLocked({
+                            clientLocked = false,
+                            lockLinks = false,
+                        })
+                    )
+                    print("Unlocked grabber")
+                end
+            end)
 
             -- release.
             print("Grab: GRAB RELEASE!!!!!")

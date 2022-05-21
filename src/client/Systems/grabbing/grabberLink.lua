@@ -10,7 +10,7 @@ local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 
 return function(world)
-    for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
+    for grabberId, grabberCR in world:queryChanged(Components.Grabber, Components.Ours) do
         if grabberCR.new then
             grabUtil.manageConnection(grabberId, grabberCR.new, world)
         end

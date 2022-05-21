@@ -3,6 +3,7 @@ local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
+local Llama = require(ReplicatedStorage.Packages.llama)
 
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local teamUtil = require(ReplicatedStorage.Util.teamUtil)
@@ -25,19 +26,42 @@ return function(world)
     --         print("gave back control to", world:get(id, Components.NetworkOwned).networkOwner)
     --     end
     -- end
+    for id, networkOwnedC in world:query(Components.NetworkOwned) do
+        if Matter.useThrottle(0.5) then
+            local instances = networkOwnedC.instances
+            if instances then
+                if networkOwnedC.networkOwner == Llama.None or networkOwnedC.networkOwner == Matter.None or
+                (not networkOwnedC.networkOwner) then
+                -- typeof(networkOwnedC.networkOwner) == "Instance" and networkOwnedC.networkOwner:IsA("Player") then
+                    physicsUtil.DeepSetNetworkOwner(instances, nil)
+                    print("controlled by NO ONE")
+                else
+                    physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
+                    print("controlled by", networkOwnedC.networkOwner)
+                end
+            end
+        end
+    end
+
     for id, networkOwnedCR in world:queryChanged(Components.NetworkOwned) do
         if networkOwnedCR.new then
             -- print("NETWORK CHANGED TO ", networkOwnedCR.new.networkOwner)
-            local instanceList = tableUtil.FlipNumeric(networkOwnedCR.new.instances)
-            physicsUtil.DeepSetNetworkOwner(instanceList, networkOwnedCR.new.networkOwner)
+            -- local instanceList = tableUtil.FlipNumeric(networkOwnedCR.new.instances)
+            local instances = networkOwnedCR.new.instances
+            if instances then
+                physicsUtil.DeepSetNetworkOwner(instances, networkOwnedCR.new.networkOwner)
+            end
         else
             -- deleted. just set to auto
-            local instanceList = tableUtil.FlipNumeric(networkOwnedCR.old.instances)
-            local success, msg = pcall(function()
-                physicsUtil.DeepTask(instanceList, function(part)
-                    part:SetNetworkOwnershipAuto()
+            -- local instances = tableUtil.FlipNumeric(networkOwnedCR.old.instances)
+            local instances = networkOwnedCR.old.instances
+            if instances then
+                local success, msg = pcall(function()
+                    physicsUtil.DeepTask(instances, function(part)
+                        part:SetNetworkOwnershipAuto()
+                    end)
                 end)
-            end)
+            end
         end
     end
 end

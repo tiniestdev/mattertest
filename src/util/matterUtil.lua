@@ -160,7 +160,11 @@ function matterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
         end
         return true
     else
-        return "EntityId " .. entityId .. " does not exist in the local world."
+        if RunService:IsServer() then
+            return "EntityId " .. entityId .. " does not exist in the SERVER world."
+        else
+            return "EntityId " .. entityId .. " does not exist in the CLIENT world."
+        end
     end
 end
 
@@ -240,7 +244,7 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
         end
 
         if not (rtcC.doNotReplicateTo or rtcC.doNotReplicateRecognized) then
-            print("!! replicating", id)
+            -- print("!! replicating", id)
             local componentsChanged = false
             for componentName, cr in pairs(crs) do
                 componentsChanged = true
@@ -249,7 +253,7 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
                 replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
             end
         else
-            print("did not replicate ", id)
+            -- print("did not replicate ", id)
         end
     end
 
@@ -259,7 +263,7 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
             doNotReplicateTo = Matter.None,
             doNotReplicateRecognized = true,
         }))
-        print("marked", id, " as recognized")
+        -- print("marked", id, " as recognized")
     end
 
     for _, id in ipairs(defaultEntities) do
@@ -345,9 +349,18 @@ function matterUtil.getServerEntityArchetypesOfReferences(payload)
     return serverEntities
 end
 
+function matterUtil.isClientLocked(entityId, world)
+    local clientLockedC = world:get(entityId, Components.ClientLocked)
+    return (clientLockedC and clientLockedC.clientLocked)
+end
+
+function matterUtil.isClientLinkLocked(entityId, world)
+    local clientLockedC = world:get(entityId, Components.ClientLocked)
+    return (clientLockedC and clientLockedC.lockLinks)
+end
+
 function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
     -- A change in an equippable tool changes the beta(s).
-
     -- the referenceField is camelcase; only lowercase the first letter.
     -- For example: the component name "FruitJuices" should be "fruitJuices".
     local alphaReferenceField = string.lower(string.sub(alphaName, 1, 1)) .. string.sub(alphaName, 2)
@@ -368,56 +381,89 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
             if newBetaId == oldBetaId then continue end
         end
 
-        -- Update whatever beta component it's pointing to now
-        if alphaCR.new then
-            local newBetaId = alphaCR.new[betaReferenceField]
-            if newBetaId then
-                if world:contains(newBetaId) then
-                    local betaC = world:get(newBetaId, Components[betaName])
-                    if betaC then
-                        world:insert(newBetaId, betaC:patch({
-                            [alphaReferenceField] = alphaId,
-                            doNotReconcile = true,
-                        }))
-                        print("LINKED " .. alphaName .. ":" .. alphaId .. " TO " .. betaName .. ":" .. newBetaId)
-                    else
-                        warn("Component " .. alphaName .. "'s " .. betaReferenceField .. ":" .. newBetaId .. " does not have an " .. betaName .. " component.")
-                    end
-                else
-                    warn("Component " .. alphaName .. "'s " .. betaReferenceField .. " pointed to a non-existent entity:", newBetaId)
-                    warn("Restoring old state:", alphaCR.old)
-                    world:insert(alphaId, alphaCR.old:patch({
-                        doNotReconcile = true,
-                    }))
-                    continue
-                end
-            end
-        end
-
-        -- Update the old beta component to remove its own reference
-        if alphaCR.old then
-            local oldBetaId = alphaCR.old[betaReferenceField]
-            if oldBetaId then
-                if world:contains(oldBetaId) then
-                    local oldBetaC = world:get(oldBetaId, Components[betaName])
-                    if oldBetaC then
-                        if oldBetaC[alphaReferenceField] == alphaId then
-                            world:insert(oldBetaId, oldBetaC:patch({
-                                [alphaReferenceField] = Matter.None,
-                                doNotReconcile = true,
-                            }))
-                            print("UNLINKED " .. alphaName .. ":" .. alphaId .. " FROM " .. betaName .. ":" .. oldBetaId)
+        local function attemptUpdateNewBetaId()
+            if alphaCR.new then
+                local newBetaId = alphaCR.new[betaReferenceField]
+                if newBetaId then
+                    if world:contains(newBetaId) then
+                        local betaC = world:get(newBetaId, Components[betaName])
+                        if betaC then
+                            if not matterUtil.isClientLinkLocked(newBetaId, world) then
+                                world:insert(newBetaId, betaC:patch({
+                                    [alphaReferenceField] = alphaId,
+                                    doNotReconcile = true,
+                                }))
+                                return true
+                                -- print("LINKED " .. alphaName .. ":" .. alphaId .. " TO " .. betaName .. ":" .. newBetaId)
+                            else
+                                warn("LINKING " .. alphaName .. ":" .. alphaId .. " TO " .. betaName .. ":" .. newBetaId .. " FAILED: client locked")
+                                -- The entity is clientlocked, we should revert our changes
+                                return false
+                            end
                         else
-                            warn("Previous " .. betaName .. " component did not reference " .. alphaReferenceField .. " " .. alphaId .. ", it referenced " .. oldBetaC[alphaReferenceField])
-                            -- not really much to reject our own change since it wasn't there in the first place
+                            warn("Component " .. alphaName .. "'s " .. betaReferenceField .. ":" .. newBetaId .. " does not have an " .. betaName .. " component.")
+                            -- The entity isn't even valid to link with, we should revert our changes
+                            return false
                         end
                     else
-                        warn("Component " .. betaName .. " does not exist in entity:", oldBetaId)
-                        continue
+                        warn("Component " .. alphaName .. "'s " .. betaReferenceField .. " pointed to a non-existent entity:", newBetaId)
+                        -- The entity does not exist, we should revert our changes
+                        return false
                     end
-                else
-                    -- beta was deleted
                 end
+            end
+            return true
+        end
+
+        local function attemptUpdateOldBetaId()
+            if alphaCR.old then
+                local oldBetaId = alphaCR.old[betaReferenceField]
+                if oldBetaId then
+                    if world:contains(oldBetaId) then
+                        local oldBetaC = world:get(oldBetaId, Components[betaName])
+                        if oldBetaC then
+                            if oldBetaC[alphaReferenceField] == alphaId then
+                                if not matterUtil.isClientLinkLocked(oldBetaId, world) then
+                                    world:insert(oldBetaId, oldBetaC:patch({
+                                        [alphaReferenceField] = Matter.None,
+                                        doNotReconcile = true,
+                                    }))
+                                    -- print("UNLINKED " .. alphaName .. ":" .. alphaId .. " FROM " .. betaName .. ":" .. oldBetaId)
+                                    return true
+                                else
+                                    warn("UNLINKING " .. alphaName .. ":" .. alphaId .. " FROM " .. betaName .. ":" .. oldBetaId .. " FAILED: client locked")
+                                    -- The entity is clientlocked, we should revert our changes
+                                    return false
+                                end
+                            else
+                                warn("Previous " .. betaName .. " component did not reference " .. alphaReferenceField .. " " .. alphaId .. ", it referenced " .. oldBetaC[alphaReferenceField])
+                                -- Though we removed the old beta id, the beta entity never pointed to us in the first place. No need to revert changes
+                                return true
+                            end
+                        else
+                            warn("Component " .. betaName .. " does not exist in entity:", oldBetaId)
+                            -- The entity was never even valid to link with, no need to revert changes
+                            return true
+                        end
+                    else
+                        warn("Entity " .. oldBetaId .. " does not exist at all")
+                        return true
+                    end
+                end
+            end
+            return true
+        end
+
+        -- Fail checking
+        if not (attemptUpdateNewBetaId() and attemptUpdateOldBetaId()) then
+            if alphaCR.old then
+                warn("Restoring old state due to failure:", alphaCR.old)
+                world:insert(alphaId, alphaCR.old:patch({
+                    doNotReconcile = true,
+                }))
+                continue;
+            else
+                -- we can't revert because there's nothing to revert to. might as well keep it
             end
         end
     end
@@ -437,56 +483,89 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
             if newAlphaId == oldAlphaId then continue end
         end
 
-        -- Update the alpha component it just pointed to
-        if betaCR.new then
-            local newAlphaId = betaCR.new[alphaReferenceField]
-            if newAlphaId then
-                if world:contains(newAlphaId) then
-                    local alphaC = world:get(newAlphaId, Components[alphaName])
-                    if alphaC then
-                        world:insert(newAlphaId, alphaC:patch({
-                            [betaReferenceField] = betaId,
-                            doNotReconcile = true,
-                        }))
-                        print("LINKED " .. alphaName .. ":" .. newAlphaId .. " TO " .. betaName .. ":" .. betaId)
-                    else
-                        warn("Component " .. betaName .. "'s " .. alphaReferenceField .. ":" .. newAlphaId .. " does not have an " .. alphaName .. " component.")
-                    end
-                else
-                    warn("Component " .. betaName .. "'s " .. alphaReferenceField .. " pointed to a non-existent entity:", newAlphaId)
-                    warn("Restoring old state:", betaCR.old)
-                    world:insert(betaId, betaCR.old:patch({
-                        doNotReconcile = true,
-                    }))
-                    continue
-                end
-            end
-        end
-
-        -- Update the alpha component that it broke away from
-        if betaCR.old then
-            local oldAlphaId = betaCR.old[alphaReferenceField]
-            if oldAlphaId then
-                if world:contains(oldAlphaId) then
-                    local oldAlphaC = world:get(oldAlphaId, Components[alphaName])
-                    if oldAlphaC then
-                        if oldAlphaC[betaReferenceField] == betaId then
-                            world:insert(oldAlphaId, oldAlphaC:patch({
-                                [betaReferenceField] = Matter.None,
-                                doNotReconcile = true,
-                            }))
-                            print("UNLINKED " .. alphaName .. ":" .. betaId .. " FROM " .. betaName .. ":" .. oldAlphaId)
+        local function attemptUpdateNewAlphaId()
+            if betaCR.new then
+                local newAlphaId = betaCR.new[alphaReferenceField]
+                if newAlphaId then
+                    if world:contains(newAlphaId) then
+                        local alphaC = world:get(newAlphaId, Components[alphaName])
+                        if alphaC then
+                            if not matterUtil.isClientLinkLocked(newAlphaId, world) then
+                                world:insert(newAlphaId, alphaC:patch({
+                                    [betaReferenceField] = betaId,
+                                    doNotReconcile = true,
+                                }))
+                                return true
+                                -- print("LINKED " .. betaName .. ":" .. betaId .. " TO " .. alphaName .. ":" .. newAlphaId)
+                            else
+                                warn("LINKING " .. betaName .. ":" .. betaId .. " TO " .. alphaName .. ":" .. newAlphaId .. " FAILED: client locked")
+                                -- The entity is clientlocked, we should revert our changes
+                                return false
+                            end
                         else
-                            warn("Previous " .. alphaName .. " component did not reference " .. betaReferenceField .. " " .. betaId .. ", it referenced " .. oldAlphaC[betaReferenceField])
-                            -- not really much to reject our own change since it wasn't there in the first place
+                            warn("Component " .. betaName .. "'s " .. alphaReferenceField .. ":" .. newAlphaId .. " does not have an " .. alphaName .. " component.")
+                            -- The entity isn't even valid to link with, we should revert our changes
+                            return false
                         end
                     else
-                        warn("Component " .. alphaName .. " does not exist in entity:", oldAlphaId)
-                        continue
+                        warn("Component " .. betaName .. "'s " .. alphaReferenceField .. " pointed to a non-existent entity:", newAlphaId)
+                        -- The entity does not exist, we should revert our changes
+                        return false
                     end
-                else
-                    -- alpha was deleted
                 end
+            end
+            return true
+        end
+
+        local function attemptUpdateOldAlphaId()
+            if betaCR.old then
+                local oldAlphaId = betaCR.old[alphaReferenceField]
+                if oldAlphaId then
+                    if world:contains(oldAlphaId) then
+                        local oldAlphaC = world:get(oldAlphaId, Components[alphaName])
+                        if oldAlphaC then
+                            if oldAlphaC[betaReferenceField] == betaId then
+                                if not matterUtil.isClientLinkLocked(oldAlphaId, world) then
+                                    world:insert(oldAlphaId, oldAlphaC:patch({
+                                        [betaReferenceField] = Matter.None,
+                                        doNotReconcile = true,
+                                    }))
+                                    -- print("UNLINKED " .. betaName .. ":" .. betaId .. " FROM " .. alphaName .. ":" .. oldAlphaId)
+                                    return true
+                                else
+                                    warn("UNLINKING " .. betaName .. ":" .. betaId .. " FROM " .. alphaName .. ":" .. oldAlphaId .. " FAILED: client locked")
+                                    -- The entity is clientlocked, we should revert our changes
+                                    return false
+                                end
+                            else
+                                warn("Previous " .. alphaName .. " component did not reference " .. betaReferenceField .. " " .. betaId .. ", it referenced " .. oldAlphaC[betaReferenceField])
+                                -- Though we removed the old alpha id, the alpha entity never pointed to us in the first place. No need to revert changes
+                                return true
+                            end
+                        else
+                            warn("Component " .. alphaName .. " does not exist in entity:", oldAlphaId)
+                            -- The entity was never even valid to link with, no need to revert changes
+                            return true
+                        end
+                    else
+                        -- Alpha entity was deleted, no need to revert changes
+                        return true
+                    end
+                end
+            end
+            return true
+        end
+
+        -- Fail checking
+        if not (attemptUpdateNewAlphaId() and attemptUpdateOldAlphaId()) then
+            if betaCR.old then
+                warn("Restoring old state due to failure:", betaCR.old)
+                world:insert(betaId, betaCR.old:patch({
+                    doNotReconcile = true,
+                }))
+                continue;
+            else
+                -- we can't revert because there's nothing to revert to. might as well keep it
             end
         end
     end
@@ -546,6 +625,9 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
 
     -- This section deals with *changing the collectives* to react to an ATOM attaching itself to them.
     -- Or the opposite, an ATOM detaching itself from a collective.
+
+    -- atomsToChange is used to undo changes due to clientlocked stuff
+    local atomsToChange = {}
     for atomId, atomCR in world:queryChanged(Components[atomComponentName]) do
         -- ensure we're allowed to reconcile and that new/old collectiveids haven't changed
         if atomCR.old and atomCR.new then
@@ -553,74 +635,113 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
             local oldCollectiveId = atomCR.old[collectiveRefName]
             if atomCR.new.doNotReconcile then
                 world:insert(atomId, atomCR.new:patch({
-                    doNotReconcile = false
+                    ["doNotReconcile"] = false,
                 }))
                 continue
             end
             if newCollectiveId == oldCollectiveId then continue end
         end
 
-        -- Add atom to the new collective.
-        if atomCR.new then
-            local newCollectiveId = atomCR.new[collectiveRefName]
-            if newCollectiveId then
-                local newCollectiveC = world:get(newCollectiveId, Components[collectiveComponentName])
-                if canBeAddedCallback and canBeAddedCallback(atomId, newCollectiveId, world) or true then
-                    world:insert(newCollectiveId, newCollectiveC:patch({
-                        [atomsRefName] = Set.add(newCollectiveC[atomsRefName] or {}, atomId),
-                    }))
-                    if DEBUG_PRINT then
-                        print("Added atom " , atomId , " to collective " , newCollectiveId)
-                        if newCollectiveId then
-                            print("Collective ", newCollectiveId, " add: ", world:get(newCollectiveId, Components[collectiveRefName]))
+        -- Make the collective add the atom to its set.
+        local function attemptUpdateNewCollective()
+            if atomCR.new then
+                local newCollectiveId = atomCR.new[collectiveRefName]
+                if newCollectiveId then
+                    local newCollectiveC = world:get(newCollectiveId, Components[collectiveComponentName])
+                    if canBeAddedCallback and canBeAddedCallback(atomId, newCollectiveId, world) or true then
+                        if not matterUtil.isClientLinkLocked(newCollectiveId, world) then
+                            -- Actual change
+                            world:insert(newCollectiveId, newCollectiveC:patch({
+                                [atomsRefName] = Set.add(newCollectiveC[atomsRefName] or {}, atomId),
+                                doNotReconcile = true,
+                            }))
+                            -- print("Added atom " , atomId , " to collective " , newCollectiveId)
+                            return true
+                        else
+                            warn("Adding atom " .. atomId .. " to collective " .. newCollectiveId .. " FAILED: client locked")
+                            return false
                         end
+                    else
+                        warn("Failed to add atom " .. atomId .. " to collective " .. newCollectiveId .. " (canBeAddedCallback): " .. tostring(canBeAddedCallback))
+                        return false
                     end
-                else
-                    warn("Could not store atom in collective.")
-                    warn("Restoring old state:", atomCR.old)
-                    -- reject our own change
-                    world:insert(atomId, atomCR.old)
-                    continue
                 end
+            end
+            return true
+        end
+
+        local function attemptUpdateOldCollective()
+            -- Remove from the old collective.
+            if atomCR.old then
+                local oldCollectiveId = atomCR.old[collectiveRefName]
+                if oldCollectiveId then
+                    if world:contains(oldCollectiveId) then
+                        local oldCollectiveC = world:get(oldCollectiveId, Components[collectiveComponentName])
+                        if canBeRemovedCallback and canBeRemovedCallback(atomId, oldCollectiveId, world) or true then
+                            if not matterUtil.isClientLinkLocked(oldCollectiveId, world) then
+                                world:insert(oldCollectiveId, oldCollectiveC:patch({
+                                    [atomsRefName] = Set.subtract(oldCollectiveC[atomsRefName] or {}, atomId),
+                                    doNotReconcile = true,
+                                }))
+                                return true
+                            else
+                                warn("Removing atom " .. atomId .. " from collective " .. oldCollectiveId .. " FAILED: client locked")
+                                return false
+                            end
+                        else
+                            warn("Could not remove atom from collective. Is it even in the collective?")
+                            -- not really much to reject our own change since it wasn't there in the first place
+                            return true
+                        end
+                    else
+                        -- collective is actually completely despawned, entity does not exist
+                        -- if it's still attached to the oldCollective and never had its collectiveId changed, then
+                        -- it's probably being despawned by removalCollective.
+                        -- so there is no oldCollective to change. we do nothing
+                        return true
+                    end
+                end
+            end
+            return true
+        end
+
+        local res1 = attemptUpdateNewCollective()
+        local res2 = attemptUpdateOldCollective()
+        if not (res1 and res2) then
+            if atomCR.old then
+                -- reject our own change
+                warn("rejecting atom change:", res1, res2)
+                atomsToChange[atomId] = atomCR.old:patch({
+                    ["doNotReconcile"] = true,
+                })
+            else
+                -- we can't revert because there's nothing to revert to. might as well keep it
             end
         end
 
-        -- Remove from the old collective.
-        if atomCR.old then
-            local oldCollectiveId = atomCR.old[collectiveRefName]
-            if oldCollectiveId then
-                if world:contains(oldCollectiveId) then
-                    local oldCollectiveC = world:get(oldCollectiveId, Components[collectiveComponentName])
-                    if canBeRemovedCallback and canBeRemovedCallback(atomId, oldCollectiveId, world) or true then
-                        world:insert(oldCollectiveId, oldCollectiveC:patch({
-                            [atomsRefName] = Set.subtract(oldCollectiveC[atomsRefName] or {}, atomId),
-                        }))
-                        if DEBUG_PRINT then
-                            print("Removed atom " , atomId , " from collective " , oldCollectiveId)
-                            if oldCollectiveId then
-                                print("Collective ", oldCollectiveId, " rem: ", world:get(oldCollectiveId, Components[collectiveRefName]))
-                            end
-                        end
-                    else
-                        warn("Could not remove atom from collective. Is it even in the collective?")
-                        -- not really much to reject our own change since it wasn't there in the first place
-                    end
-                else
-                    -- collective is actually completely despawned, entity does not exist
-                    -- if it's still attached to the oldCollective and never had its collectiveId changed, then
-                    -- it's probably being despawned by removalCollective.
-                    -- so there is no oldCollective to change. we do nothing
-                    -- print("Collective entity doesn't exist anymore")
-                end
-            end
-        end
+    end
+
+    for atomId, componentData in pairs(atomsToChange) do
+        warn("Restoring old state for atom ", atomId, ":", componentData)
+        world:insert(atomId, componentData)
     end
 
     -- Listen to collective events
     -- This section deals with *changing the ATOMS* to react to a collective adding them.
     -- Or the opposite, a collective removing them.
+
+    -- collectivesToChange is for collectives that have to re-update to reject their changes
+    local collectivesToChange = {}
     for collectiveId, collectiveCR in world:queryChanged(Components[collectiveComponentName]) do
         -- Collective has changed.
+        -- Ensure we're allowed to reconcile
+        if collectiveCR.new and collectiveCR.new.doNotReconcile then
+            world:insert(collectiveId, collectiveCR.new:patch({
+                ["doNotReconcile"] = false,
+            }))
+            continue
+        end
+
         local completelyNewSet = {}
         if collectiveCR.new then
             completelyNewSet = Set.filter(collectiveCR.new[atomsRefName] or {}, function(value)
@@ -642,6 +763,10 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
             end)
         end
 
+        -- These sets are atoms that shouldn't be edited, and should be either re-added or kept out of
+        -- our collective due to being locked.
+        local reDeleteFromCollective = {}
+        local reAddToCollective = {}
         -- Reconcile all the atoms.
         --[[
             Also, prevent them from re-reconciling after the fact,
@@ -650,38 +775,76 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
             and will remove themselves from the collective.
         ]]
         for atomId, _ in pairs(completelyNewSet) do
+
             local atomC = world:get(atomId, Components[atomComponentName])
-            world:insert(atomId, atomC:patch({
-                [collectiveRefName] = collectiveId,
-                ["doNotReconcile"] = true,
-            }))
-            if DEBUG_PRINT then
-                print("Forced atom " , atomId , " into collective " , collectiveId)
-                if collectiveId then
-                    print("Collective ", collectiveId, " add: ", world:get(collectiveId, Components[collectiveRefName]))
-                end
-            end
-        end
-        for atomId, _ in pairs(deletedFromOldSet) do
-            if world:contains(atomId) then
-                local atomC = world:get(atomId, Components[atomComponentName])
+            if not matterUtil.isClientLinkLocked(atomId, world) then
                 world:insert(atomId, atomC:patch({
-                    [collectiveRefName] = Matter.None,
+                    [collectiveRefName] = collectiveId,
                     ["doNotReconcile"] = true,
                 }))
-                if DEBUG_PRINT then
-                    print("Evicted atom " , atomId , " from collective " , collectiveId)
-                    if collectiveId then
-                        print("Collective ", collectiveId, " add: ", world:get(collectiveId, Components[collectiveRefName]))
-                    end
+                -- if DEBUG_PRINT then
+                --     print("Forced atom " , atomId , " into collective " , collectiveId)
+                --     if collectiveId then
+                --         print("Collective ", collectiveId, " add: ", world:get(collectiveId, Components[collectiveRefName]))
+                --     end
+                -- end
+            else
+                warn("Adding atom " .. atomId .. " to collective " .. collectiveId .. " FAILED: client locked")
+                table.insert(reDeleteFromCollective, atomId)
+            end
+
+        end
+
+        for atomId, _ in pairs(deletedFromOldSet) do
+            
+            if world:contains(atomId) then
+                if not matterUtil.isClientLinkLocked(atomId, world) then
+                    local atomC = world:get(atomId, Components[atomComponentName])
+                    world:insert(atomId, atomC:patch({
+                        [collectiveRefName] = Matter.None,
+                        ["doNotReconcile"] = true,
+                    }))
+                    -- if DEBUG_PRINT then
+                    --     print("Evicted atom " , atomId , " from collective " , collectiveId)
+                    --     if collectiveId then
+                    --         print("Collective ", collectiveId, " add: ", world:get(collectiveId, Components[collectiveRefName]))
+                    --     end
+                    -- end
+                else
+                    warn("Removing atom " .. atomId .. " from collective " .. collectiveId .. " FAILED: client locked")
+                    table.insert(reAddToCollective, atomId)
                 end
             else
                 -- the atom entity literally does not exist anymore
                 -- there is nothing to change, we can't change a deleted entity
                 -- print("Storable Entity does not exist anymore")
             end
+
         end
+
+        -- reject invalid changes here
+        if #reAddToCollective + #reDeleteFromCollective > 0 then
+            warn("Restoring or re-deleting locked atoms.")
+            local finalSet = Set.copy(collectiveCR.new[atomsRefName])
+            for _, atomId in ipairs(reAddToCollective) do
+                Set.add(finalSet, atomId)
+            end
+            for _, atomId in ipairs(reDeleteFromCollective) do
+                Set.subtract(finalSet, atomId)
+            end
+            collectivesToChange[collectiveId] = collectiveCR.new:patch({
+                [atomsRefName] = finalSet,
+                ["doNotReconcile"] = true,
+            })
+        end
+
     end
+
+    for collectiveId, componentData in pairs(collectivesToChange) do
+        warn("Restoring old state for collective ", collectiveId, ":", componentData)
+        world:insert(collectiveId, componentData)
+    end
+
 end
 
 --[[

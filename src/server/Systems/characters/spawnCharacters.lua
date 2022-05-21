@@ -45,16 +45,11 @@ return function(world)
         local grabberFX = Assets.Particles.GrabberFX:Clone()
         grabberFX.Parent = grabberAtt
         grabberFX.Enabled = false
-        grabberAtt.Parent = character:WaitForChild("Torso")
+        grabberAtt.Parent = character:WaitForChild("Head")
 
         local charEntityId = world:spawn(
             Components.ReplicateToClient({
                 archetypes = {"CharacterArchetype"}
-            }),
-            Components.NetworkOwned({
-                networkOwner = player,
-                instances = {},
-                -- instances = Llama.List.toSet(physicsUtil.GetParts(character)),
             }),
             Components.Instance({
                 instance = character,

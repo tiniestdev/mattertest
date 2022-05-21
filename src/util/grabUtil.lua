@@ -66,6 +66,14 @@ grabUtil.manageConnection = function(grabberId, grabberC, world)
     local connectionState = grabUtil.getGrabRopeState(grabberId, world)
     -- print("invoked state: ", connectionState)
 
+    if not RunService:IsServer() then
+        -- if we're the client, we should only be managing our own grab state
+        if not world:get(grabberId, Components.Ours) then
+            print(grabberId, "is not ours")
+            return
+        end
+    end
+
     if grabberC.grabbableId then
         -- if grabberC.grabbableAttachmentInstance then
         if connectionState.grabbableAtt then
@@ -130,7 +138,7 @@ grabUtil.manageConnection = function(grabberId, grabberC, world)
         end
     else
         -- print("LETTING GO!", connectionState)
-        for i,v in pairs(connectionState) do
+        -- for i,v in pairs(connectionState) do
             if connectionState.connectionInstance then
                 connectionState.connectionInstance:Destroy()
                 connectionState.connectionInstance = nil
@@ -139,7 +147,7 @@ grabUtil.manageConnection = function(grabberId, grabberC, world)
                 connectionState.grabbableAtt:Destroy()
                 connectionState.grabbableAtt = nil
             end
-        end
+        -- end
         -- if (connectionState.connectionInstance) then connectionState.connectionInstance:Destroy() print("D 1") end
         -- if (connectionState.grabberAtt) then connectionState.grabberAtt:Destroy() print("D 2") end
         -- if (connectionState.grabbableAtt) then connectionState.grabbableAtt:Destroy() print("D 3") end

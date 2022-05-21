@@ -169,15 +169,17 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
     local mainRecipientId
     local addOursComponent = false
     if payload.archetypeSet then
+        local myPlayerId = replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
         if payload.archetypeSet["PlayerArchetype"] then
             if payload.components["Player"] and payload.components["Player"].player == Players.LocalPlayer then
                 mainRecipientId = replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+                myPlayerId = mainRecipientId
                 addOursComponent = true -- redundant, but here for consistency
                 -- i think we already add an "ours" component when we initialize our player entity clientside
             end
         end
         if payload.archetypeSet["CharacterArchetype"] then
-            local myPlayerId = replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
+            -- print("HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUGH")
             if payload.components["Character"] and payload.components["Character"].playerId == myPlayerId then
                 addOursComponent = true
             end
@@ -214,8 +216,6 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         -- REMAPPING OF PROPERTIES
     local oldComponentsData = payload.components
     local remappedComponentsData = {}
-    -- print("payload: ", payload)
-    -- print("component set: ", componentSet)
     for componentName, _ in pairs(componentSet) do
         local payloadComponentData = oldComponentsData[componentName]
         -- print("payloadComponentData", componentName, payloadComponentData)
@@ -250,27 +250,24 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
     -- Now apply the remapped component data and hydrate em all up
     -- THE PART WHERE ALL THE COMPONENT DATA IS ACTUALLY REPLICATED INTO THE ENTITY
     for componentName, componentData in pairs(remappedComponentsData) do
-        -- check if we should replicate...
-		-- clientLocked = {};
-		-- lockLinks = {};
-        if not world:get(mainRecipientId, Components[componentName]).clientLocked then
+        if not matterUtil.isClientLocked(mainRecipientId, world) then
             replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
         end
     end
 
-    -- Because this was replicated, make component that has its replication data
+    -- Because this was replicated, make Replicated component that has its replication data
     replicationUtil.insertOrUpdateComponent(mainRecipientId, "Replicated", {
         serverId = payload.entityId,
         scope = payload.scope,
         identifier = payload.identifier,
     }, world)
 
+    -- addOursComponent is set above, where it checks if it's our own player or character being deserialized
     if addOursComponent then
         replicationUtil.insertOrUpdateComponent(mainRecipientId, "Ours", {}, world)
     end
 
-    -- print("Finished deserializing archetype " .. archetypeName, "for id ", mainRecipientId)
-    -- print(remappedComponentsData)
+    -- give it an serverEntityId/clientEntityId attribute
     if remappedComponentsData["Instance"] then
         matterUtil.setEntityId(remappedComponentsData.Instance.instance, mainRecipientId)
     end

@@ -26,8 +26,6 @@ return function(world)
             }), rtcC:patch({
                 doNotReplicateTo = player,
             }))
-            print("New offset, asked not to replicate")
-            -- print("new offset:", world:get(characterId, Components.Grabber).grabberOffset)
         end
     end
 

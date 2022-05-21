@@ -17,6 +17,16 @@ return function(world)
             world:insert(id, skeletonCR.new:patch({
                 skeletonInstance = newSkeleton,
             }))
+            task.delay(0.5, function()
+                local player = matterUtil.getPlayerFromCharacterEntity(id, world)
+                if player then
+                    for _,v in ipairs(newSkeleton:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v:SetNetworkOwner(player)
+                        end
+                    end
+                end
+            end)
         end
     end
 end

@@ -76,6 +76,7 @@ ragdollUtil.initSkeleton = function(character)
         if foundRegularLimb then
             physicsUtil.weldPartsStrong(skeletonLimb, foundRegularLimb)
         end
+        skeletonLimb:SetNetworkOwner(charTorso:GetNetworkOwner())
     end
 
     physicsUtil.DeepTask(character, function(part)

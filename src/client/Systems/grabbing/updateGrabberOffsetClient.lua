@@ -22,7 +22,7 @@ return function(world)
             local head = localUtil.getHead()
             if not head then return warn("No head.") end
             local hit = localUtil.castMouseRangedHitWithParams(grabUtil.getGrabberOffsetCastParams(world, grabberC), grabUtil.MaxGrabDistance, head.Position)
-            if not hit then return end
+            if not hit then return warn("wtf it should ALWAYS return a pos") end
 
             local grabberOriginCF = grabberC.attachmentInstance.Parent.CFrame
             local rayOriginCF = head.CFrame
@@ -31,6 +31,7 @@ return function(world)
             local newWorldOffset = direction * grabDistance
 
             local newLocalOffset = grabberOriginCF:VectorToObjectSpace(newWorldOffset)
+            -- print(newLocalOffset)
 
             world:insert(grabberId, grabberC:patch({
                 grabberOffset = newLocalOffset,
@@ -42,7 +43,6 @@ return function(world)
     for grabberId, grabberCR in world:queryChanged(Components.Grabber, Components.Ours) do
         if grabberCR.new then
             if grabberCR.new.grabbableId then
-                print("got grabbableId:", grabberId, grabberCR.new.grabbableId)
                 local newOffset = world:get(grabberId, Components.Grabber).grabberOffset
                 grabberCR.new.attachmentInstance.Position = newOffset
                 grabberCR.new.attachmentInstance.GrabberFX.Enabled = true
@@ -51,7 +51,6 @@ return function(world)
                     Remotes.Client:Get("ReplicateGrabberOffset"):SendToServer(newOffset)
                 end
             else
-                print("no grabbableId:", grabberId)
                 grabberCR.new.attachmentInstance.GrabberFX.Enabled = false
             end
         end
