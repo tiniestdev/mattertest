@@ -87,15 +87,10 @@ ComponentInfo.Catalog = {
 			isReference = true;
 			referenceToArchetype = "Grabbable";
 		};
-		attachmentInstance = {};
-		grabbableAttachmentInstance = {};
-		grabberOffset = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
-		-- This property is updated by the grabber (client dictated), but the server should sanitize and sanity check it,
-		-- and also won't update at high frequency because a client-owned grab point should be updated super frequently clientside,
-		-- so this property wouldn't even matter; and if it were depended on because it's server owned, then this implies
-		-- there are contesting grabbers and so grab movement should be fairly slow.
-		-- (the origin will be the parent of the attachment instance)
-		preferPosition = {}; -- for players who click a specific point on the grabbable part
+		grabberInstance = {}; -- Define a specific grab PART to use to calculate offset
+		grabbableInstance = {}; -- Same
+		grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
+		grabPointObjectCFrame = {}; -- for players who click a specific point on the grabbable part to manipulate
 	},
 	Grabbable = {
 		grabberIds = {

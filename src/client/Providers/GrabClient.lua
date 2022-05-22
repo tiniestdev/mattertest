@@ -11,6 +11,8 @@ local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 local Components = require(ReplicatedStorage.components)
 local Llama = require(ReplicatedStorage.Packages.llama)
 
+local drawUtil = require(ReplicatedStorage.Util.drawUtil)
+
 local Grab = {}
 
 Grab.AxisName = "GrabAxis"
@@ -20,88 +22,83 @@ function Grab:AxisPrepare()
     -- print("Grab: Axis prepare")
 end
 
+local function attemptCastGrabRay(world)
+    local characterId = localUtil.getMyCharacterEntityId(world)
+    local equipperC = world:get(characterId, Components.Equipper)
+    local skeletonC = world:get(characterId, Components.Skeleton)
+    local grabberC = world:get(characterId, Components.Grabber)
+
+    if not equipperC then return end
+    if not skeletonC then return end
+    if not grabberC then return end
+   
+    -- already holding something?
+    if equipperC.equippableId then return end
+    
+    -- is there anything grabbable under cursor
+    local grabRayParams = grabUtil.getGrabberOffsetCastParams(world, grabberC)
+
+    local camPos = workspace.CurrentCamera.CFrame.Position
+    local mouseRaycastHit = localUtil.castMouseRangedHitWithParams(
+        grabRayParams,
+        100,
+        camPos
+    )
+    local grabberInstance = grabberC.grabberInstance
+    local raycastResult = workspace:Raycast(grabberInstance.Position, (mouseRaycastHit-grabberInstance.Position).Unit * 10, grabRayParams)
+
+
+    if raycastResult and raycastResult.Instance then
+        -- see if raycastResult is grabbable
+        local grabbableInstance = raycastResult.Instance
+        local grabbableId = grabUtil.getGrabbableEntity(grabbableInstance, world)
+        if not grabbableId then return nil end
+        return raycastResult, grabbableId
+    end
+
+    return nil
+end
+
 function Grab:AxisStarted()
-    -- print("Grab: Axis started")
     local world = MatterClient.World
     
     UserInputService.InputBegan:Connect(function(inputObject)
-        if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
-            if inputObject.UserInputState == Enum.UserInputState.Begin then
-                -- release ANYTHING
-                -- TODO
-                -- do we have anything equipped?
-                local characterId = localUtil.getMyCharacterEntityId(world)
-                local equipperC = world:get(characterId, Components.Equipper)
-                local skeletonC = world:get(characterId, Components.Skeleton)
+        if inputObject.UserInputType == Enum.UserInputType.MouseButton1 and inputObject.UserInputState == Enum.UserInputState.Begin then
+            local characterId = localUtil.getMyCharacterEntityId(world)
+            local grabberC = world:get(characterId, Components.Grabber)
 
-                -- already holding something?
-                if equipperC.equippableId then return end
-                
-                -- is there anything grabbable under cursor
-                local mouse = Players.LocalPlayer:GetMouse()
-                local mousePosition = mouse.Hit.Position
-                local char = Players.LocalPlayer.Character
-                local head = char:FindFirstChild("Head")
-                if not head then error("wtf") end
+            local raycastResult, grabbableId = attemptCastGrabRay(world)
+            if not raycastResult then return end
 
-                local grabRayParams = RaycastParams.new()
-                grabRayParams.FilterDescendantsInstances = {char, skeletonC.skeletonInstance}
-                grabRayParams.FilterType = Enum.RaycastFilterType.Blacklist
+            local grabObjectCFrame = raycastResult.Instance.CFrame:toObjectSpace(CFrame.new(raycastResult.Position))
 
-                local raycastResult = workspace:Raycast(head.Position, (mousePosition-head.Position).Unit * 20, grabRayParams)
-                if raycastResult and raycastResult.Instance:IsA("BasePart") then
-                    -- see if raycastResult is grabbable
-                    local grabbableInstance = raycastResult.Instance
-                    local grabbableId = grabUtil.getGrabbableEntity(grabbableInstance, world)
-                    if not grabbableId then return end
-                    local grabbableC = world:get(grabbableId, Components.Grabbable)
-                    local grabberC = localUtil.getCharComponent("Grabber", world);
-                    if not grabberC then error("WTFF") return end
-                    local preferLocalPosition = grabbableInstance.CFrame:PointToObjectSpace(raycastResult.Position)
+            local hit = localUtil.castMouseRangedHitWithParams(
+                grabUtil.getGrabberOffsetCastParams(world, grabberC),
+                grabUtil.MaxGrabDistance,
+                grabberC.grabberInstance.Position
+            )
 
-                    -- world:insert(characterId, grabberC:patch({
-                    --     grabbableId = grabbableId,
-                    --     preferLocalPosition = preferLocalPosition,
-                    -- }))
+            world:insert(characterId, grabberC:patch({
+                grabbableId = grabbableId,
+                grabbableInstance = raycastResult.Instance,
+                grabOffsetCFrame = grabberC.grabberInstance.CFrame:toObjectSpace(CFrame.new(hit)),
+                grabPointObjectCFrame = grabObjectCFrame,
+            }), Components.ClientLocked({
+                clientLocked = true,
+                lockLinks = true,
+            }))
 
+            Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabObjectCFrame):andThen(function(response)
+                if response then
+                    -- true
+                else
+                    -- let go immediately
                     world:insert(characterId, grabberC:patch({
-                        grabbableId = grabbableId,
-                        preferLocalPosition = preferLocalPosition,
-                    }), Components.ClientLocked({
-                        clientLocked = true,
-                        lockLinks = true,
+                        grabbableId = Matter.None,
+                        preferLocalPosition = Matter.None,
                     }))
-
-                    -- world:insert(grabbableId,
-                    --     Components.ClientLocked({
-                    --         clientLocked = true,
-                    --         lockLinks = true,
-                    --     }),
-                    --     grabbableC:patch({
-                    --         Llama.Set.add(grabbableC.grabberIds, characterId),
-                    --     })
-                    -- )
-                    print("Locked onto grabbable " .. grabbableId)
-
-                    Remotes.Client:Get("RequestGrab"):CallServerAsync(grabbableInstance, preferLocalPosition):andThen(function(response)
-                        if response then
-                            -- true
-                        else
-                            -- let go immediately
-                            world:insert(characterId, grabberC:patch({
-                                grabbableId = Matter.None,
-                                preferLocalPosition = Matter.None,
-                            }))
-                        end
-                    end)
-                    -- maybe rewrite grabber system?
-                    -- a grabber should probably be some attachment, and a grabbable should auto
-                    -- generate an attachment when grabbed onto, like nearest point on geometry type stuff
-                    -- then, the hands of the character could be grabbers instead of just the character??
-                    -- or hold on since grabbing is supposed to be more like some telekensis stuff
-                    -- like theres diff orientations and stuff idk idk idk
                 end
-            end
+            end)
         end
     end)
 
@@ -110,7 +107,6 @@ function Grab:AxisStarted()
             -- release ANYTHING
             -- TODO
             local characterId = localUtil.getMyCharacterEntityId(world)
-            print("character id is ", characterId)
             local grabberC = world:get(characterId, Components.Grabber)
 
             -- world:insert(characterId, grabberC:patch({
@@ -133,12 +129,10 @@ function Grab:AxisStarted()
                             lockLinks = false,
                         })
                     )
-                    print("Unlocked grabber")
                 end
             end)
 
             -- release.
-            print("Grab: GRAB RELEASE!!!!!")
             Remotes.Client:Get("RequestGrab"):CallServerAsync(nil):andThen(function(response) end)
         end
     end)

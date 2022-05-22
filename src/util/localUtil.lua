@@ -4,6 +4,8 @@ local Components = require(ReplicatedStorage.components)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local localUtil = {}
 
+local MAX_MOUSERAY_RANGE = 500
+
 function localUtil.getMyPlayerEntityId(world)
     for id, playerC, oursC in world:query(Components.Player, Components.Ours) do
         return id
@@ -58,31 +60,42 @@ function localUtil.getMyCharacterEntityId(world)
 end
 
 function localUtil.castMouseRangedHitWithParams(params, range, origin)
-    local castResult = localUtil.castMouseWithParams(params, origin)
-    local castPosition
-    if castResult then
-        castPosition = castResult.Position
+    local castResult, castPosition = localUtil.castMouseWithParams(params)
+    if castResult and (castPosition - origin).Magnitude < range then
+        return castPosition
     else
-        local Mouse = localUtil.getMouse()
-
-        local mousePosition = Mouse.Hit.Position
-        local direction = (mousePosition - origin).Unit
-        local distance = math.clamp((mousePosition - origin).Magnitude, 0, range)
-        castPosition = origin + (direction * distance)
+        local direction = (castPosition - origin).Unit
+        local distance = math.clamp((castPosition - origin).Magnitude, 0, range)
+        return origin + (direction * distance)
     end
-
-    return castPosition
 end
 
-function localUtil.castMouseWithParams(params, origin)
+-- the second return value is always a position, even if the raycast returned nothing
+function localUtil.castMouseWithParams(params)
     local Mouse = localUtil.getMouse()
     local Camera = localUtil.getCamera()
 
-    local originPosition = origin or Camera.CFrame.Position
-    local mousePosition = Mouse.Hit.Position
-    local raycastResult = workspace:Raycast(originPosition, (mousePosition-originPosition).Unit * 100, params)
+    local camOrigin = Camera.CFrame.Position
+    local mouseRaycastDirection = (Mouse.Hit.Position - camOrigin).Unit
+    local mouseRaycastResult = workspace:Raycast(camOrigin, mouseRaycastDirection * MAX_MOUSERAY_RANGE, params)
+    -- local mousePosition
 
-    return raycastResult
+    if mouseRaycastResult then
+        return mouseRaycastResult, mouseRaycastResult.Position
+    else
+        return nil, (camOrigin + mouseRaycastDirection * MAX_MOUSERAY_RANGE)
+    end
+
+    -- if mouseRaycastResult then
+    --     mousePosition = mouseRaycastResult.Position
+    -- else
+    --     mousePosition = Camera.CFrame.Position + (mouseRaycastDirection * 500)
+    -- end
+
+    -- local originPosition = origin or camOrigin
+    -- local raycastResult = workspace:Raycast(originPosition, (mousePosition-originPosition).Unit * range, params)
+
+    -- return raycastResult
 end
 
 return localUtil

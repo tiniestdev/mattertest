@@ -73,13 +73,14 @@ return function(world)
                 maxCapacity = 10,
             }),
             Components.Equipper({
-                equippableId = nil,
+                equippableId = Matter.None,
             }),
             Components.Grabber({
-                grabbableId = nil,
-                attachmentInstance = grabberAtt,
-                grabbableAttachmentInstance = nil,
-                grabberOffset = Vector3.new(0,0,0),
+                grabbableId = Matter.None,
+                grabberInstance = character.Head; -- Define a specific grab PART to use to calculate offset
+                grabbableInstance = Matter.None; -- Same
+                grabOffsetCFrame = CFrame.new(); -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
+                grabPointObjectCFrame = CFrame.new(); -- for players who click a specific point on the grabbable part to manipulate
             }),
             Components.Walkspeed({
                 walkspeed = 16,

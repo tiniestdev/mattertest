@@ -9,7 +9,7 @@ local ReplicateGrabberOffset = matterUtil.NetSignalToEvent("ReplicateGrabberOffs
 
 return function(world)
     for i, player, newOffset in Matter.useEvent(ReplicateGrabberOffset, "Event") do
-        if Matter.useThrottle(0.4, player) then
+        if Matter.useThrottle(0.2, player) then
             local playerId = matterUtil.getEntityId(player)
             local characterId = world:get(playerId, Components.Player).characterId
             local grabberC = world:get(characterId, Components.Grabber)

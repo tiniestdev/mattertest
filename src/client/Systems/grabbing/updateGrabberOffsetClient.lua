@@ -13,46 +13,37 @@ local localUtil = require(ReplicatedStorage.Util.localUtil)
 
 local Mouse = Players.LocalPlayer:GetMouse()
 
+--[[
+    This system takes care of updating the grab offset locally every render frame.
+    Mouse drags around and this system writes the offset
+
+    The bottom one actually replicates the grab offset to the server.
+]]
+
 return function(world)
     for grabberId, grabberC in world:query(Components.Grabber, Components.Ours) do
         if grabberC.grabbableId then
+            local hit = localUtil.castMouseRangedHitWithParams(
+                grabUtil.getGrabberOffsetCastParams(world, grabberC),
+                grabUtil.MaxGrabDistance,
+                grabberC.grabberInstance.Position
+            )
 
-            -- print(grabberId, "valid:", grabberC.grabbableId)
-            -- will always update grabberOffset if it's grabbing something
-            local head = localUtil.getHead()
-            if not head then return warn("No head.") end
-            local hit = localUtil.castMouseRangedHitWithParams(grabUtil.getGrabberOffsetCastParams(world, grabberC), grabUtil.MaxGrabDistance, head.Position)
-            if not hit then return warn("wtf it should ALWAYS return a pos") end
-
-            local grabberOriginCF = grabberC.attachmentInstance.Parent.CFrame
-            local rayOriginCF = head.CFrame
-            local direction = (hit - rayOriginCF.Position).Unit
-            local grabDistance = math.clamp((hit - rayOriginCF.Position).Magnitude, 0, 4)
-            local newWorldOffset = direction * grabDistance
-
-            local newLocalOffset = grabberOriginCF:VectorToObjectSpace(newWorldOffset)
-            -- print(newLocalOffset)
-
+            local newLocalOffset = grabberC.grabberInstance.CFrame:toObjectSpace(CFrame.new(hit))
             world:insert(grabberId, grabberC:patch({
-                grabberOffset = newLocalOffset,
+                grabOffsetCFrame = newLocalOffset,
             }))
-            -- print(world:get(grabberId, Components.Grabber).grabberOffset)
+
         end
     end
 
     for grabberId, grabberCR in world:queryChanged(Components.Grabber, Components.Ours) do
-        if grabberCR.new then
-            if grabberCR.new.grabbableId then
-                local newOffset = world:get(grabberId, Components.Grabber).grabberOffset
-                grabberCR.new.attachmentInstance.Position = newOffset
-                grabberCR.new.attachmentInstance.GrabberFX.Enabled = true
-
-                if Matter.useThrottle(0.5) then
-                    Remotes.Client:Get("ReplicateGrabberOffset"):SendToServer(newOffset)
-                end
-            else
-                grabberCR.new.attachmentInstance.GrabberFX.Enabled = false
+        if grabberCR.new and grabberCR.new.grabbableId then
+            if Matter.useThrottle(0.5) then
+                local newOffset = world:get(grabberId, Components.Grabber).grabOffsetCFrame
+                Remotes.Client:Get("ReplicateGrabberOffset"):SendToServer(newOffset)
             end
         end
     end
+
 end

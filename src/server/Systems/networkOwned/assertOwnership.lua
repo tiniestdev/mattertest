@@ -12,20 +12,6 @@ local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 return function(world)
-    -- for id, networkOwnedC, characterC in world:query(Components.NetworkOwned, Components.Character) do
-    --     if Matter.useThrottle(5) then
-    --         if networkOwnedC.networkOwner then
-    --             world:insert(id, networkOwnedC:patch({
-    --                 networkOwner = Matter.None,
-    --             }))
-    --         else
-    --             world:insert(id, networkOwnedC:patch({
-    --                 networkOwner = world:get(characterC.playerId, Components.Player).player,
-    --             }))
-    --         end
-    --         print("gave back control to", world:get(id, Components.NetworkOwned).networkOwner)
-    --     end
-    -- end
     for id, networkOwnedC in world:query(Components.NetworkOwned) do
         if Matter.useThrottle(0.5) then
             local instances = networkOwnedC.instances

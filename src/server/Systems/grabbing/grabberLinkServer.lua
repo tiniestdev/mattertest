@@ -12,7 +12,7 @@ local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 return function(world)
     for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
         if grabberCR.new then
-            grabUtil.manageConnection(grabberId, grabberCR.new, world)
+            -- grabUtil.manageConnection(grabberId, grabberCR.new, world)
         end
     end
 end
