@@ -18,6 +18,11 @@ export type TransformType = {
 	size: Vector3,
 }
 
+-- lookup of fields that are expected to be found inside any component
+ComponentInfo.genericFields = {
+	["doNotReconcile"] = true,
+}
+
 ComponentInfo.Catalog = {
     -- CLIENT COMPONENTS
 	InToolbar = {
@@ -86,9 +91,10 @@ ComponentInfo.Catalog = {
 		grabbableId = {
 			isReference = true;
 			referenceToArchetype = "Grabbable";
+			replicateNil = true;
 		};
 		grabberInstance = {}; -- Define a specific grab PART to use to calculate offset
-		grabbableInstance = {}; -- Same
+		grabbableInstance = {}; -- Same (may be redundant cause this can be derived from grabbableId)
 		grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
 		grabPointObjectCFrame = {}; -- for players who click a specific point on the grabbable part to manipulate
 	},
@@ -98,6 +104,7 @@ ComponentInfo.Catalog = {
             referenceToArchetype = "Grabber";
 		};
 		grabbableInstance = {};
+		ownedBySinglePlayer = {};
 	},
 
 	-- Applied to objects associated with a certain team or alliance.
@@ -110,16 +117,24 @@ ComponentInfo.Catalog = {
 
 	-- Actual entities of teams and groups
 	Team = {
+		allianceId = {
+			isReference = true;
+			referenceToArchetype = "Alliance";
+		},
         playerIds = {
             isReferenceSet = true;
             referenceToArchetype = "PlayerArchetype";
         },
+		teamName = {},
+		color = {},
+		autoAssignable = {},
 	},
 	Alliance = {
         teamIds = {
             isReferenceSet = true;
             referenceToArchetype = "Team";
         },
+		allianceName = {},
 	},
 
 	Player = {
@@ -185,6 +200,7 @@ ComponentInfo.Catalog = {
 		equippableId = {
             isReference = true;
             referenceToArchetype = "Equippable";
+			replicateNil = true;
         },
 	},
 	Equippable = {
@@ -203,6 +219,7 @@ ComponentInfo.Catalog = {
 		storageId = {
             isReference = true;
             referenceToArchetype = "Storage";
+			replicateNil = true;
         },
 		size = {},
 		order = {},  -- integer used to sort it in a consistent way. If two storables have the same order, undefined behavior.
@@ -211,6 +228,22 @@ ComponentInfo.Catalog = {
 		instance = {},
 	}, -- does it have a physical form? (Some instances aren't corporeal)
 }
+
+ComponentInfo.getReplicateNilFields = function(componentName)
+	local componentInfo = ComponentInfo.Catalog[componentName];
+	if not componentInfo then
+		warn("ComponentInfo.getReplicateNilFields: No component info for " .. componentName)
+		return {}
+	end
+	local replicateNilFields = {};
+	for field, info in pairs(componentInfo) do
+		-- print(field, info)
+		if typeof(info) == "table" and info.replicateNil then
+			table.insert(replicateNilFields, field);
+		end
+	end
+	return replicateNilFields
+end
 
 
 return ComponentInfo

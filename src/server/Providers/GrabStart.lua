@@ -22,12 +22,11 @@ end
 function GrabStart:AxisStarted()
     local world = MatterStart.World
 
-    Remotes.Server:OnFunction("RequestGrab", function(player, instance, grabLocalPos)
+    Remotes.Server:OnFunction("RequestGrab", function(player, instance, grabOffset, grabPoint)
         local grabberId = matterUtil.getCharacterIdOfPlayer(player, world)
         local grabberC = world:get(grabberId, Components.Grabber)
 
         if instance then
-            -- print("Server grabbing.")
             local grabbableId = grabUtil.getGrabbableEntity(instance, world)
 
             if not grabberId then warn("no grabberId") return false end
@@ -37,9 +36,14 @@ function GrabStart:AxisStarted()
             -- validity check
             if true then
                 local rtcC = world:get(grabberId, Components.ReplicateToClient)
+                -- grabberInstance = {}; -- Define a specific grab PART to use to calculate offset
+                -- grabbableInstance = {}; -- Same
+                -- grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
+                -- grabPointObjectCFrame = {}; -- for players who click a specific point on the grabbable part to manipulate
                 world:insert(grabberId, grabberC:patch({
                     grabbableId = grabbableId,
-                    preferLocalPosition = grabLocalPos,
+                    grabOffsetCFrame = grabOffset,
+                    grabPointObjectCFrame = grabPoint,
                 }), rtcC:patch({
                     doNotReplicateTo = player,
                 }))
@@ -50,10 +54,9 @@ function GrabStart:AxisStarted()
             end
         else
             -- let go
-            -- print("Server let go.")
             world:insert(grabberId, grabberC:patch({
                 grabbableId = Matter.None,
-                preferLocalPosition = Matter.None,
+                grabOffsetCFrame = Matter.None,
             }))
             return true
         end

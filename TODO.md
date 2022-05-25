@@ -8,7 +8,9 @@ Discord id: 483036244025278478
 
 
 
-
+find out why people get multiple beams that dont go away ever when they grab stuff
+ragdoll still a mystery idk
+some bricks anchor themselves if a bunch fo people fight over it
 
 
 

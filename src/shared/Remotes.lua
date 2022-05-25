@@ -21,7 +21,7 @@ local Definitions = {
     }),
     -- client to server grabber offset update
     ReplicateGrabberOffset = Net.Definitions.ClientToServerEvent({
-        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 150, })
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = (60 * 1/0.1), })
     }),
 
     ProposeRagdollState = Net.Definitions.ServerAsyncFunction({}),

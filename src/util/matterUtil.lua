@@ -263,7 +263,6 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
             doNotReplicateTo = Matter.None,
             doNotReplicateRecognized = true,
         }))
-        -- print("marked", id, " as recognized")
     end
 
     for _, id in ipairs(defaultEntities) do
@@ -272,7 +271,6 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
             doNotReplicateTo = Matter.None,
             doNotReplicateRecognized = false,
         }))
-        print("demarked", id, " as unrecognized")
     end
 end
 
@@ -646,7 +644,8 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
         local function attemptUpdateNewCollective()
             if atomCR.new then
                 local newCollectiveId = atomCR.new[collectiveRefName]
-                if newCollectiveId then
+                if newCollectiveId and world:contains(newCollectiveId) then
+                    -- print("newCollectiveId:", newCollectiveId)
                     local newCollectiveC = world:get(newCollectiveId, Components[collectiveComponentName])
                     if canBeAddedCallback and canBeAddedCallback(atomId, newCollectiveId, world) or true then
                         if not matterUtil.isClientLinkLocked(newCollectiveId, world) then
@@ -665,6 +664,8 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
                         warn("Failed to add atom " .. atomId .. " to collective " .. newCollectiveId .. " (canBeAddedCallback): " .. tostring(canBeAddedCallback))
                         return false
                     end
+                else
+                    -- print("Nonexistent collective:", newCollectiveId)
                 end
             end
             return true
@@ -872,5 +873,9 @@ function matterUtil.queryMultipleChanged(componentNameList, world)
 
     --for id, ragdollableCR, characterC, instanceC, skeletonC in world:queryChanged(
 end]]
+
+function matterUtil.isNone(value)
+    return value == Matter.None or value == Llama.None or value == nil or (not value)
+end
 
 return matterUtil

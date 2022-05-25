@@ -78,17 +78,19 @@ function Grab:AxisStarted()
                 grabberC.grabberInstance.Position
             )
 
+            local grabOffsetCFrame = grabberC.grabberInstance.CFrame:toObjectSpace(CFrame.new(hit));
+
             world:insert(characterId, grabberC:patch({
                 grabbableId = grabbableId,
                 grabbableInstance = raycastResult.Instance,
-                grabOffsetCFrame = grabberC.grabberInstance.CFrame:toObjectSpace(CFrame.new(hit)),
+                grabOffsetCFrame = grabOffsetCFrame,
                 grabPointObjectCFrame = grabObjectCFrame,
             }), Components.ClientLocked({
                 clientLocked = true,
                 lockLinks = true,
             }))
 
-            Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabObjectCFrame):andThen(function(response)
+            Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabOffsetCFrame, grabObjectCFrame):andThen(function(response)
                 if response then
                     -- true
                 else

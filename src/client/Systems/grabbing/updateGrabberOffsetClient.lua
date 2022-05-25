@@ -39,7 +39,7 @@ return function(world)
 
     for grabberId, grabberCR in world:queryChanged(Components.Grabber, Components.Ours) do
         if grabberCR.new and grabberCR.new.grabbableId then
-            if Matter.useThrottle(0.5) then
+            if Matter.useThrottle(0.2) then
                 local newOffset = world:get(grabberId, Components.Grabber).grabOffsetCFrame
                 Remotes.Client:Get("ReplicateGrabberOffset"):SendToServer(newOffset)
             end

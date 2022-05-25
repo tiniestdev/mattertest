@@ -9,6 +9,7 @@ local Archetypes = require(ReplicatedStorage.Archetypes)
 local serializers = require(ReplicatedStorage.Util.serializers)
 local Remotes = require(ReplicatedStorage.Remotes)
 
+local Matter = require(ReplicatedStorage.Packages.matter)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 
 local replicationUtil = {}
@@ -158,8 +159,6 @@ end
 function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, world)
     -- Get information about the entities we're going to have to construct or find
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
-    -- print("deserializing archetype " .. archetypeName)
-    -- print("component set is ", componentSet)
     local serverEntitiesInfos = matterUtil.getServerEntityArchetypesOfReferences(payload)
 
         -- CONSTRUCT SHELLS
@@ -179,7 +178,6 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
             end
         end
         if payload.archetypeSet["CharacterArchetype"] then
-            -- print("HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUGH")
             if payload.components["Character"] and payload.components["Character"].playerId == myPlayerId then
                 addOursComponent = true
             end
@@ -285,8 +283,20 @@ function replicationUtil.insertOrUpdateComponent(entityId, componentName, newDat
         error(debug.traceback())
     end
     local currComponent = world:get(entityId, Components[componentName])
+
     if currComponent then
-        world:insert(entityId, currComponent:patch(newData))
+        -- if the server wants to erase a field, it must be specified in ComponentInfos
+        -- since it will typically ignore Matter.None s while merging via patch
+        local patchedData = currComponent:patch(newData)
+        for _, fieldName in ipairs(ComponentInfo.getReplicateNilFields(componentName)) do
+            if not newData[fieldName] then
+                patchedData = patchedData:patch({
+                    [fieldName] = Matter.None;
+                })
+                -- print("replicateNil", fieldName)
+            end
+        end
+        world:insert(entityId, patchedData)
     else
         world:insert(entityId, Components[componentName](newData))
         currComponent = world:get(entityId, Components[componentName])

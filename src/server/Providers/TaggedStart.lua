@@ -33,6 +33,9 @@ local tagToTask = {
             }),
             Components.ReplicateToClient({
                 archetypes = {"GrabbableArchetype"}
+            }),
+            Components.NetworkOwned({
+                instances = instance,
             })
         )
     end,

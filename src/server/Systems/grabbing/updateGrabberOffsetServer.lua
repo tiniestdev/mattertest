@@ -6,10 +6,11 @@ local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 
 local ReplicateGrabberOffset = matterUtil.NetSignalToEvent("ReplicateGrabberOffset", Remotes)
+local cframeUtil = require(ReplicatedStorage.Util.cframeUtil)
 
 return function(world)
-    for i, player, newOffset in Matter.useEvent(ReplicateGrabberOffset, "Event") do
-        if Matter.useThrottle(0.2, player) then
+    for _, player, newOffset in Matter.useEvent(ReplicateGrabberOffset, "Event") do
+        if Matter.useThrottle(0.1, player) then
             local playerId = matterUtil.getEntityId(player)
             local characterId = world:get(playerId, Components.Player).characterId
             local grabberC = world:get(characterId, Components.Grabber)
@@ -17,27 +18,16 @@ return function(world)
             if not grabberC then error("wtf") end
 
             -- TODO: sanitize, sanity check
-            if newOffset.Magnitude > grabUtil.MaxGrabDistance then
-                newOffset = newOffset.Unit * grabUtil.MaxGrabDistance
+            if newOffset.Position.Magnitude > grabUtil.MaxGrabDistance then
+                newOffset = cframeUtil.getCFrameToPosition(newOffset, newOffset.Position.Unit * grabUtil.MaxGrabDistance)
             end
 
+            -- grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
             world:insert(characterId, grabberC:patch({
-                grabberOffset = newOffset,
+                grabOffsetCFrame = newOffset,
             }), rtcC:patch({
                 doNotReplicateTo = player,
             }))
-        end
-    end
-
-    for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
-        if grabberCR.new then
-            if grabberCR.new.grabbableId then
-                local newOffset = world:get(grabberId, Components.Grabber).grabberOffset
-                grabberCR.new.attachmentInstance.Position = newOffset
-                grabberCR.new.attachmentInstance.GrabberFX.Enabled = true
-            else
-                grabberCR.new.attachmentInstance.GrabberFX.Enabled = false
-            end
         end
     end
 end

@@ -12,34 +12,38 @@ local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 return function(world)
-    for id, networkOwnedC in world:query(Components.NetworkOwned) do
-        if Matter.useThrottle(0.5) then
-            local instances = networkOwnedC.instances
-            if instances then
-                if networkOwnedC.networkOwner == Llama.None or networkOwnedC.networkOwner == Matter.None or
-                (not networkOwnedC.networkOwner) then
-                -- typeof(networkOwnedC.networkOwner) == "Instance" and networkOwnedC.networkOwner:IsA("Player") then
-                    physicsUtil.DeepSetNetworkOwner(instances, nil)
-                    print("controlled by NO ONE")
-                else
-                    physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
-                    print("controlled by", networkOwnedC.networkOwner)
-                end
-            end
-        end
-    end
+    -- for id, networkOwnedC in world:query(Components.NetworkOwned) do
+    --     if Matter.useThrottle(1, id) then
+    --         local instances = networkOwnedC.instances
+    --         if instances then
+    --             -- print(id, networkOwnedC)
+    --             if matterUtil.isNone(networkOwnedC.networkOwner) then
+    --                 physicsUtil.DeepSetNetworkOwner(instances, nil)
+    --                 print("controlled by NO ONE")
+    --             else
+    --                 physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
+    --                 print("controlled by", networkOwnedC.networkOwner)
+    --             end
+    --         end
+    --     end
+    -- end
 
     for id, networkOwnedCR in world:queryChanged(Components.NetworkOwned) do
         if networkOwnedCR.new then
-            -- print("NETWORK CHANGED TO ", networkOwnedCR.new.networkOwner)
-            -- local instanceList = tableUtil.FlipNumeric(networkOwnedCR.new.instances)
-            local instances = networkOwnedCR.new.instances
+            local networkOwnedC = networkOwnedCR.new
+            local instances = networkOwnedC.instances
             if instances then
-                physicsUtil.DeepSetNetworkOwner(instances, networkOwnedCR.new.networkOwner)
+                -- print(networkOwnedC.networkOwner)
+                if matterUtil.isNone(networkOwnedC.networkOwner) then
+                    physicsUtil.DeepSetNetworkOwner(instances, nil)
+                    -- print("controlled by NO ONE")
+                else
+                    physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
+                    -- print("controlled by", networkOwnedC.networkOwner)
+                end
+                -- physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
             end
         else
-            -- deleted. just set to auto
-            -- local instances = tableUtil.FlipNumeric(networkOwnedCR.old.instances)
             local instances = networkOwnedCR.old.instances
             if instances then
                 local success, msg = pcall(function()
