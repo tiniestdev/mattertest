@@ -76,11 +76,16 @@ return function(world)
                 equippableId = Matter.None,
             }),
             Components.Grabber({
-                grabbableId = Matter.None,
+                -- grabbableId = Matter.None,
                 grabberInstance = character.Head; -- Define a specific grab PART to use to calculate offset
-                grabbableInstance = Matter.None; -- Same
+                -- grabbableInstance = Matter.None; -- Same
                 grabOffsetCFrame = CFrame.new(); -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
                 grabPointObjectCFrame = CFrame.new(); -- for players who click a specific point on the grabbable part to manipulate
+                grabStrength = 3000; -- Changes maxforce and maxtorque
+                grabVelocity = 100;
+                grabResponsiveness = 30;
+                grabEffectRadiusStart = 5; -- at this distance, it will begin to fade away due to distance
+                grabEffectRadiusEnd = 17; -- at this distance, the grab will be completely faded away and nonexistent
             }),
             Components.Walkspeed({
                 walkspeed = 16,

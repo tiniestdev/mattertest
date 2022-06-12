@@ -37,7 +37,8 @@ return function(world)
         end
     end
 
-    for grabberId, grabberCR in world:queryChanged(Components.Grabber, Components.Ours) do
+    for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
+        if not world:get(grabberId, Components.Ours) then continue end
         if grabberCR.new and grabberCR.new.grabbableId then
             if Matter.useThrottle(0.2) then
                 local newOffset = world:get(grabberId, Components.Grabber).grabOffsetCFrame

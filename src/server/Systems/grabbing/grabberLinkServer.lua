@@ -12,6 +12,7 @@ local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 return function(world)
     for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
         local state = grabUtil.getServerGrabberState(grabberId, world)
+
         if grabberCR.new and grabberCR.new.grabbableId and not matterUtil.isNone(grabberCR.new.grabbableId) then
             
             local grabberC = grabberCR.new
@@ -49,6 +50,8 @@ return function(world)
                 CollectionService:AddTag(alignRot, "ServerOwned")
 
                 state.grabbableAttachment = grabbableAttachment
+                state.alignPos = alignPos
+                state.alignRot = alignRot
             end
             
             local networkOwnedC = world:get(grabbableId, Components.NetworkOwned)
@@ -65,6 +68,15 @@ return function(world)
             -- grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
             -- grabPointObjectCFrame = {}; -- for players who click a specific point on the grabbable part to manipulate
 
+            local percent = grabUtil.getEffectPercent(grabberC, grabbableC)
+
+            state.alignPos.MaxForce = grabberC.grabStrength * (percent*percent)
+            state.alignPos.MaxVelocity = grabberC.grabVelocity
+            state.alignPos.Responsiveness = grabberC.grabResponsiveness
+
+            state.alignRot.MaxAngularVelocity = grabberC.grabStrength * (percent*percent)
+            state.alignRot.MaxTorque = grabberC.grabVelocity
+            state.alignRot.Responsiveness = grabberC.grabResponsiveness
         else
             for i, v in pairs(state) do
                 if typeof(v) == "Instance" then

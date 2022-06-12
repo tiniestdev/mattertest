@@ -6,10 +6,12 @@ local New = Fusion.New
 
 local UIFolder = ReplicatedStorage.UI
 local Main = require(UIFolder.Main)
+local EntityViewer = require(UIFolder.Debug.EntityViewer.EntityViewer)
 
 local Components = require(ReplicatedStorage.components)
 local MatterClient = require(script.Parent.MatterClient)
 local uiUtil = require(ReplicatedStorage.Util.uiUtil)
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 
 local FusionClient = {}
 
@@ -27,6 +29,12 @@ function FusionClient:AxisStarted()
         storableProps:set(uiUtil.getStorablePropsFromStorage(charStorageId, MatterClient.World))
     end)
 
+    task.wait(1)
+    print("SHOWING")
+    local data = matterUtil.getEntityViewerData(MatterClient.World)
+    print(data)
+    task.wait()
+    print("SHOWING")
     New "ScreenGui" {
         Name = "FusionClient",
         Parent = Players.LocalPlayer.PlayerGui,
@@ -34,6 +42,9 @@ function FusionClient:AxisStarted()
             Main {
                 storableProps = storableProps,
             },
+            EntityViewer({
+                entityDumps = data
+            }),
         },
     }
 end

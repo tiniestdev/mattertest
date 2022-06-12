@@ -32,25 +32,31 @@ local function checkRagdoll(ragdollableC, instanceC, skeletonC)
 end
 
 return function(world)
-    for id, ragdollableCR, characterC, instanceC, skeletonC in world:queryChanged(
-        Components.Ragdollable,
-        Components.Character,
-        Components.Instance,
-        Components.Skeleton) do
+    for id, ragdollableCR in world:queryChanged(Components.Ragdollable) do
+        local characterC = world:get(id, Components.Character)
+        if not characterC then continue end
+        local instanceC = world:get(id, Components.Instance)
+        if not instanceC then continue end
+        local skeletonC = world:get(id, Components.Skeleton)
+        if not skeletonC then continue end
         checkRagdoll(ragdollableCR.new, instanceC, skeletonC)
     end
-    for id, instanceCR, characterC, ragdollableC, skeletonC in world:queryChanged(
-        Components.Instance,
-        Components.Character,
-        Components.Ragdollable,
-        Components.Skeleton) do
+    for id, instanceCR in world:queryChanged(Components.Instance) do
+        local ragdollableC = world:get(id, Components.Ragdollable)
+        if not ragdollableC then continue end
+        local characterC = world:get(id, Components.Character)
+        if not characterC then continue end
+        local skeletonC = world:get(id, Components.Skeleton)
+        if not skeletonC then continue end
         checkRagdoll(ragdollableC, instanceCR.new, skeletonC)
     end
-    for id, skeletonCR, ragdollableC, characterC, instanceC, skeletonC in world:queryChanged(
-        Components.Skeleton,
-        Components.Ragdollable,
-        Components.Character,
-        Components.Instance) do
+    for id, skeletonCR in world:queryChanged(Components.Skeleton) do
+        local ragdollableC = world:get(id, Components.Ragdollable)
+        if not ragdollableC then continue end
+        local characterC = world:get(id, Components.Character)
+        if not characterC then continue end
+        local instanceC = world:get(id, Components.Instance)
+        if not instanceC then continue end
         checkRagdoll(ragdollableC, instanceC, skeletonCR.new)
     end
 end

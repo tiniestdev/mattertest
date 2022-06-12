@@ -7,11 +7,10 @@ local Remotes = require(ReplicatedStorage.Remotes)
 local ChangeTeamEvent = MatterUtil.NetSignalToEvent("ChangeTeam", Remotes)
 
 return function(world)
-    for id, teamCR, charC in world:queryChanged(Components.Teamed, Components.Character) do
-        print("Character changed team: ", charC, " to ", teamCR)
-    end
-
-    for id, charCR in world:queryChanged(Components.Character) do
-        -- some char entity changed its properties
+    for id, teamCR in world:queryChanged(Components.Teamed) do
+        local characterC = world:get(id, Components.Character)
+        if not characterC then continue end
+        print("Character changed team: ", characterC, " to ", teamCR)
+        -- some fx here? idfk
     end
 end

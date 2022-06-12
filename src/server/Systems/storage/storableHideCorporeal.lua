@@ -8,7 +8,10 @@ local TeamUtil = require(ReplicatedStorage.Util.teamUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 
 return function(world)
-    for id, storableCR, corporealC in world:queryChanged(Components.Storable, Components.Corporeal) do
+    for id, storableCR in world:queryChanged(Components.Storable) do
+        local corporealC = world:get(id, Components.Corporeal)
+        if not corporealC then continue end
+
         if storableCR.new.storageId then
             world:insert(id, corporealC:patch({
                 purgatory = true

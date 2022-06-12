@@ -49,14 +49,18 @@ local overrides = {
 
 return function(world)
     -- Transform added/changed on existing Instance entity
-    for id, transformCR, instanceC in world:queryChanged(Components.Transform, Components.Instance) do
+    for id, transformCR in world:queryChanged(Components.Transform) do
+        local instanceC = world:get(id, Components.Instance)
+        if not instanceC then continue end
         if transformCR.new and not transformCR.new.doNotReconcile then
             MatterUtil.getProcedures(instanceC.instance, overrides).onComponentChange(id, transformCR, instanceC)
         end
     end
 
     -- Instance added/changed on existing entity with Transform
-    for id, instanceCR, transformC in world:queryChanged(Components.Instance, Components.Transform) do
+    for id, instanceCR in world:queryChanged(Components.Instance) do
+        local transformC = world:get(id, Components.Transform)
+        if not transformC then continue end
         if instanceCR.new then
             MatterUtil.getProcedures(instanceCR.new.instance, overrides).onInstanceChange(id, instanceCR, transformC)
         end

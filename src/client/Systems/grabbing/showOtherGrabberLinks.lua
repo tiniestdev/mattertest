@@ -13,6 +13,7 @@ local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 return function(world)
     for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
         local state = grabUtil.getOtherGrabberState(grabberId, world)
+        state.otherGrabberId = grabberId
 
         if grabberCR.new and grabberCR.new.grabbableId and not matterUtil.isNone(grabberCR.new.grabbableId) then
             local grabberC = grabberCR.new
@@ -41,8 +42,14 @@ return function(world)
                 grabBeam.Parent = grabberAttachment
                 grabBeam.Attachment0 = grabberAttachment
                 grabBeam.Attachment1 = state.grabPointAttachment
+                grabBeam.Name = "BEAM"
                 state.grabBeam = grabBeam
             end
+            
+            local percent = grabUtil.getEffectPercent(grabberC, grabbableC)
+            state.grabBeam.Transparency = NumberSequence.new(1-percent)
+            state.grabBeam.Width0 = percent * 0.1
+            state.grabBeam.Width1 = percent * 0.4
         else
             for i, v in pairs(state) do
                 if typeof(v) == "Instance" then

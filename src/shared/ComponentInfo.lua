@@ -97,6 +97,13 @@ ComponentInfo.Catalog = {
 		grabbableInstance = {}; -- Same (may be redundant cause this can be derived from grabbableId)
 		grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
 		grabPointObjectCFrame = {}; -- for players who click a specific point on the grabbable part to manipulate
+
+		grabStrength = {}; -- Changes maxforce and maxtorque
+		grabVelocity = {};
+		grabResponsiveness = {};
+		
+		grabEffectRadiusStart = {}; -- at this distance, it will begin to fade away due to distance
+		grabEffectRadiusEnd = {}; -- at this distance, the grab will be completely faded away and nonexistent
 	},
 	Grabbable = {
 		grabberIds = {

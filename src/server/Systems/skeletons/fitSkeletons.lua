@@ -11,7 +11,12 @@ local ragdollUtil = require(ReplicatedStorage.Util.ragdollUtil)
 
 return function(world)
     -- for every new skeleton added to an entity, call ragdollUtil.initSkeleton()  on it
-    for id, skeletonCR, characterC, instanceC in world:queryChanged(Components.Skeleton, Components.Character, Components.Instance) do
+    for id, skeletonCR in world:queryChanged(Components.Skeleton) do
+        local characterC = world:get(id, Components.Character)
+        if not characterC then continue end
+        local instanceC = world:get(id, Components.Instance)
+        if not instanceC then continue end
+
         if not skeletonCR.old then
             local newSkeleton = ragdollUtil.initSkeleton(instanceC.instance)
             world:insert(id, skeletonCR.new:patch({

@@ -13,17 +13,19 @@ local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 
 return function(world)
 
-    for entityId, storageCR in world:queryChanged(Components.Storage, Components.Ours) do
-        -- print("!!!STORAGE CHANGE DETECTED")
+    for entityId, storageCR in world:queryChanged(Components.Storage) do
+        if not world:get(entityId, Components.Ours) then continue end
         uiUtil.fireUpdateToolbarSignal(world)
     end
 
-    for entityId, storableCR, inToolbarCR in world:queryChanged(Components.Storable, Components.InToolbar) do
-        -- print("!!!STORAGE CHANGE DETECTED")
+    for entityId, storableCR in world:queryChanged(Components.Storable) do
+        if not world:get(entityId, Components.InToolbar) then continue end
         uiUtil.fireUpdateToolbarSignal(world)
     end
 
-    for entityId, storageCR, characterC, oursC in world:queryChanged(Components.Storage, Components.Character, Components.Ours) do
+    for entityId, storageCR in world:queryChanged(Components.Storage) do
+        if not world:get(entityId, Components.Character) then continue end
+        if not world:get(entityId, Components.Ours) then continue end
         if storageCR.new then
             local newStorableIds = storageCR.new.storableIds
             for storableId, _ in pairs(newStorableIds) do

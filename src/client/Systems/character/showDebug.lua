@@ -13,7 +13,8 @@ local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 local MatterIdDisplay = require(ReplicatedStorage.UI.Debug.MatterIdDisplay)
 
 return function(world)
-    for entityId, characterCR, instanceC in world:queryChanged(Components.Character, Components.Instance) do
+    for entityId, characterCR in world:queryChanged(Components.Character) do
+        local instanceC = world:get(entityId, Components.Instance)
         task.delay(0.5, function()
             world:insert(entityId, Components.ShowMatterDebug({
                 adornee = instanceC.instance.HumanoidRootPart,

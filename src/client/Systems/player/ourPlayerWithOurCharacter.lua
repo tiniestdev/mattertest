@@ -8,14 +8,19 @@ local TeamUtil = require(ReplicatedStorage.Util.teamUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 
 return function(world)
-    for id, ourPlayerCR in world:queryChanged(Components.Player, Components.Ours) do
+    for id, ourPlayerCR in world:queryChanged(Components.Player) do
+        if not world:get(id, Components.Ours) then continue end
 
+        -- 6/11/2022: the below comment was made on matter 0.1.2. queryChanged behavior has changed
+        -- in 0.2.0. TODO we'll see if this still works or not
+        
         -- I commented this all out because when it was queried, it never caught that Player had a
         -- different character ID. I think it's because it only queried after it had the same character id
         -- throughout multiple changes, and so when the queryChanged picks up on the player entity, it doesn't
         -- think the characterId is anything to report on.
         -- Which means now I have to constantly add the Ours component to the character every time the player changes.
         -- Oh well
+
 
         -- if ourPlayerCR.new and ourPlayerCR.old then
             -- print(ourPlayerCR.new.characterId, "from: ", ourPlayerCR.old.characterId)

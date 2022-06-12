@@ -13,7 +13,6 @@ return function(world)
             -- we should calculate network owners for everything attached, not just the single part
             local grabbableInstance = grabbableCR.new.grabbableInstance
             local assembly, grabbableIdsSet = grabUtil.getGrabConnections(grabbableInstance, nil, nil, world)
-            print(assembly, grabbableIdsSet)
 
             local function getGrabbableStatus()
                 local singularPlayer = nil

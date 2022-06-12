@@ -168,6 +168,48 @@ function matterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
     end
 end
 
+function matterUtil.getEntityViewerData(world)
+    local id = 0
+    local entityDumps = {}
+    while (world:contains(id)) do
+        local entityDump = {
+            entityId = id,
+        }
+
+        -- a table, every key = component name, every value = its data
+        local componentDumps = {}
+        
+        -- list all archetypes it has on the header
+        local headerTags = {}
+        for archName, _ in pairs(Archetypes.Catalog) do
+            if matterUtil.isArchetype(id, archName, world) then
+                table.insert(headerTags, archName)
+            end
+        end
+
+        -- list all components it has
+        for compName, compInfo in pairs(ComponentInfo.Catalog) do
+            if not Components[compName] then continue end
+            local comp = world:get(id, Components[compName])
+            if comp then
+                local compDump = {
+                    componentName = compName,
+                    componentData = comp,
+                }
+                componentDumps[compName] = compDump
+            end
+        end
+
+        entityDump.componentDumps = componentDumps
+        entityDump.headerTags = headerTags
+
+        table.insert(entityDumps, entityDump)
+        id = id + 1
+    end
+
+    return entityDumps
+end
+
 function matterUtil.getMissingComponentsOfArchetype(entityId, archetypeName, world)
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
     local missing = {}
@@ -206,7 +248,9 @@ function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, ...)
             table.insert(actualComponents, Components[componentName])
         end
         local currentComponentName = componentList[1]
-        for id, CR in world:queryChanged(unpack(actualComponents)) do
+        -- for id, CR in world:queryChanged(unpack(actualComponents)) do
+        for id, CR in world:queryChanged(actualComponents[1]) do
+            if not matterUtil.isArchetype(id, archetypeName, world) then continue end
             if not changedEntities[id] then
                 changedEntities[id] = {}
             end
@@ -215,7 +259,7 @@ function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, ...)
     end
 
     for i, componentName in ipairs(componentList) do
-        for id, componentCR in world:queryChanged(Components[componentName], ...) do
+        for id, componentCR in world:queryChanged(Components[componentName]) do
             if matterUtil.isArchetype(id, archetypeName, world) then
                 if not changedEntities[id] then
                     changedEntities[id] = {}
@@ -348,11 +392,13 @@ function matterUtil.getServerEntityArchetypesOfReferences(payload)
 end
 
 function matterUtil.isClientLocked(entityId, world)
+    if RunService:IsServer() then return false end
     local clientLockedC = world:get(entityId, Components.ClientLocked)
     return (clientLockedC and clientLockedC.clientLocked)
 end
 
 function matterUtil.isClientLinkLocked(entityId, world)
+    if RunService:IsServer() then return false end
     local clientLockedC = world:get(entityId, Components.ClientLocked)
     return (clientLockedC and clientLockedC.lockLinks)
 end
@@ -647,6 +693,9 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
                 if newCollectiveId and world:contains(newCollectiveId) then
                     -- print("newCollectiveId:", newCollectiveId)
                     local newCollectiveC = world:get(newCollectiveId, Components[collectiveComponentName])
+                    print("atom ", atomId, "attempting to add to collective ", newCollectiveId)
+                    print(newCollectiveId, "newCollectiveC:", newCollectiveC, collectiveComponentName)
+
                     if canBeAddedCallback and canBeAddedCallback(atomId, newCollectiveId, world) or true then
                         if not matterUtil.isClientLinkLocked(newCollectiveId, world) then
                             -- Actual change

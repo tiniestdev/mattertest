@@ -32,28 +32,25 @@ local function checkRagdoll(ragdollableC, instanceC, skeletonC)
 end
 
 return function(world)
-    for id, ragdollableCR, characterC, instanceC, skeletonC in world:queryChanged(
-        Components.Ragdollable,
-        Components.Character,
-        Components.Instance,
-        Components.Skeleton,
-        Components.Ours) do
+    for id, ragdollableCR, characterC, instanceC, skeletonC in world:queryChanged(Components.Ragdollable) do
+        if not world:get(id, Components.Character) then continue end
+        if not world:get(id, Components.Instance) then continue end
+        if not world:get(id, Components.Skeleton) then continue end
+        if not world:get(id, Components.Ours) then continue end
         checkRagdoll(ragdollableCR.new, instanceC, skeletonC)
     end
-    for id, instanceCR, characterC, ragdollableC, skeletonC in world:queryChanged(
-        Components.Instance,
-        Components.Character,
-        Components.Ragdollable,
-        Components.Skeleton,
-        Components.Ours) do
+    for id, instanceCR, characterC, ragdollableC, skeletonC in world:queryChanged(Components.Instance) do
+        if not world:get(id, Components.Character) then continue end
+        if not world:get(id, Components.Ragdollable) then continue end
+        if not world:get(id, Components.Skeleton) then continue end
+        if not world:get(id, Components.Ours) then continue end
         checkRagdoll(ragdollableC, instanceCR.new, skeletonC)
     end
-    for id, skeletonCR, ragdollableC, characterC, instanceC, skeletonC in world:queryChanged(
-        Components.Skeleton,
-        Components.Ragdollable,
-        Components.Character,
-        Components.Instance,
-        Components.Ours) do
+    for id, skeletonCR, ragdollableC, characterC, instanceC, skeletonC in world:queryChanged(Components.Skeleton) do
+        if not world:get(id, Components.Ragdollable) then continue end
+        if not world:get(id, Components.Character) then continue end
+        if not world:get(id, Components.Instance) then continue end
+        if not world:get(id, Components.Ours) then continue end
         checkRagdoll(ragdollableC, instanceC, skeletonCR.new)
     end
 end

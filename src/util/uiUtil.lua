@@ -2,8 +2,24 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.components)
 local Intercom = require(ReplicatedStorage.Intercom)
+local RDM = Random.new()
 
 local uiUtil = {}
+
+function uiUtil.nameToDebugColor(name)
+    -- convert string name into a number
+    assert(typeof(name) == "string", "nameToDebugColor: name must be a string, we got " .. typeof(name) .. ", " .. tostring(name))
+    local nameNum = 0
+    for i = 1, #name do
+        nameNum = nameNum + string.byte(name, i)
+    end
+    local randomgen = Random.new(nameNum)
+    return Color3.fromHSV(
+        randomgen:NextNumber(0, 1), 
+        randomgen:NextNumber(0.5, 1), 
+        randomgen:NextNumber(0.6, 0.9)
+    )
+end
 
 function uiUtil.storableToFusionProps(storableId, world)
     local storableC = world:get(storableId, Components.Storable)

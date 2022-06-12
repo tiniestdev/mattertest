@@ -61,45 +61,72 @@ grabUtil.getGrabbableEntity = function(instance, world)
 end
 
 grabUtil.getGrabRopeState = function(grabberId, world)
-    local storage = Matter.useHookState(grabberId, function(storage)
-        return grabUtil.grabberCleanupFunction(grabberId, world, storage)
+    local storage = Matter.useHookState(grabberId.."Rope", function(storage)
+        local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
+        return result
     end)
     return storage
 end
 
 grabUtil.getOtherGrabberState = function(grabberId, world)
-    local storage = Matter.useHookState(grabberId, function(storage)
-        return grabUtil.grabberCleanupFunction(grabberId, world, storage)
+    local storage = Matter.useHookState(grabberId.."Other", function(storage)
+        local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
+        if not result then
+            print("===")
+            print(grabberId, " cleaning other grabber state of ", grabberId)
+            print(storage)
+            print("===")
+        end
+        return result
     end)
     return storage
 end
 
 grabUtil.getServerGrabberState = function(grabberId, world)
-    local storage = Matter.useHookState(grabberId, function(storage)
-        return grabUtil.grabberCleanupFunction(grabberId, world, storage)
+    local storage = Matter.useHookState(grabberId.."Server", function(storage)
+        local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
+        return result
     end)
     return storage
 end
 
 grabUtil.grabberCleanupFunction = function(grabberId, world, storage)
     -- clean up
-    if not world:contains(grabberId) then
+    local function clearStorage()
         for i, v in pairs(storage) do
             if typeof(v) == "Instance" then
                 v:Destroy()
                 storage[i] = nil
             end
         end
+    end
+    if not world:contains(grabberId) then
+        print("Cleanup due to entity removal")
+        clearStorage()
         return false
     end
     local grabberC = world:get(grabberId, Components.Grabber)
     if not grabberC then
-        for i, v in pairs(storage) do
-            if typeof(v) == "Instance" then
-                v:Destroy()
-                storage[i] = nil
-            end
+        print("Cleanup due to component removal")
+        clearStorage()
+        return false
+    end
+
+    local grabbableId = grabberC.grabbableId
+    if (not grabbableId
+        or (not world:contains(grabbableId))
+        or (not world:get(grabbableId, Components.Grabbable))) then
+        
+        -- print out the reason
+        if not grabbableId then
+            print("Cleanup due to no grabbableId from grabber id ", grabberId)
+        elseif not world:contains(grabbableId) then
+            print("Cleanup due to grabbableId entity removal")
+        else
+            print("Cleanup due to grabbable component removal")
         end
+
+        clearStorage()
         return false
     end
     return true
@@ -183,6 +210,22 @@ grabUtil.getGrabConnections = function(startPart, accum, grabbableIds, world)
     return accum, grabbableIds
 end
 
+grabUtil.getEffectPercent = function(grabberC, grabbableC)
+    local grabberCF = grabberC.grabberInstance.CFrame
+    local currGrabPointCFrame = grabbableC.grabbableInstance.CFrame:toWorldSpace(grabberC.grabPointObjectCFrame)
+    local distance = (currGrabPointCFrame.Position - grabberCF.Position).Magnitude
+
+    -- grabEffectRadiusStart = {}; -- at this distance, it will begin to fade away due to distance
+    -- grabEffectRadiusEnd = {}; -- at this distance, the grab will be completely faded away and nonexistent
+    if distance <= grabberC.grabEffectRadiusStart then
+        return 1
+    elseif distance >= grabberC.grabEffectRadiusEnd then
+        return 0
+    else
+        return 1 - ((distance - grabberC.grabEffectRadiusStart) / (grabberC.grabEffectRadiusEnd - grabberC.grabEffectRadiusStart))
+    end
+end
+
 grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
     local state = grabUtil.getGrabRopeState(grabberId, world)
     -- if we're the client, we should only be managing our own grab state
@@ -193,8 +236,13 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
 
     if grabberC.grabbableId then
 
+        if not grabberC.grabberInstance then
+            warn("grabberInstance is nil")
+            return
+        end
         if not grabberC.grabbableInstance and grabberC.grabPointObjectCFrame then
             warn("grabbableId is set but grabbableInstance and grabPointObjectCFrame are nil")
+            return
         end
         -- Creation of Goal attachment, our source of truth
         -- It's the attachment that the grabbed part will actually follow
@@ -212,14 +260,17 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
             local grabbableAttachment = Instance.new("Attachment")
             grabbableAttachment.Name = "GRAB_GrabbableAligner"
             grabbableAttachment.CFrame = grabberC.grabPointObjectCFrame
+            print("grabber:", grabberC)
             grabbableAttachment.Parent = grabberC.grabbableInstance
 
             local alignPos = grabUtil.getAlignPos(grabbableAttachment)
             alignPos.Attachment0 = grabbableAttachment
             alignPos.Attachment1 = state.GoalAttachment
+            alignPos.Name = "POS"
             local alignRot = grabUtil.getAlignRot(grabbableAttachment)
             alignRot.Attachment0 = grabbableAttachment
             alignRot.Attachment1 = state.GoalAttachment
+            alignRot.Name = "ROT"
             
             state.GrabbableAttachment = grabbableAttachment
         end
@@ -237,10 +288,13 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
             grabberGuidePart.Parent = workspace.CurrentCamera
             local fxatt = Instance.new("Attachment")
             fxatt.Parent = grabberGuidePart
+            fxatt.Name = "FX"
             local fx = ReplicatedStorage.Assets.Particles.GrabberFX:Clone()
             fx.Parent = fxatt
             fx.Enabled = true
+            fx.Name = "SPARK"
             state.GrabberGuidePart = grabberGuidePart
+            state.Spark = fx
         end
         if not state.GrabberGuideAttachment then
             local grabberGuideAttachment = Instance.new("Attachment")
@@ -285,6 +339,20 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
         state.GoalAttachment.WorldCFrame = goalCFrame
         -- state.GrabberGuidePart.CFrame = goalCFrame
         state.GrabberGuidePart.CFrame = grabbableCF:toWorldSpace(grabberC.grabPointObjectCFrame)
+
+        -- update forces and stuff on da fly
+        
+        local percent = grabUtil.getEffectPercent(grabberC, world:get(grabberC.grabbableId, Components.Grabbable))
+        -- state.Spark.Transparency = NumberSequence.new(1-percent)
+
+        state.GrabbableAttachment.POS.MaxForce = grabberC.grabStrength * (percent*percent)
+        state.GrabbableAttachment.POS.MaxVelocity = grabberC.grabVelocity
+        state.GrabbableAttachment.POS.Responsiveness = grabberC.grabResponsiveness
+
+        state.GrabbableAttachment.ROT.MaxAngularVelocity = grabberC.grabStrength * (percent*percent)
+        state.GrabbableAttachment.ROT.MaxTorque = grabberC.grabVelocity
+        state.GrabbableAttachment.ROT.Responsiveness = grabberC.grabResponsiveness
+
     else
         -- we're deleting all our connections
         for i, v in pairs(state) do

@@ -10,7 +10,9 @@ local List = Llama.List
 local ChangeTeamEvent = MatterUtil.NetSignalToEvent("ChangeTeam", Remotes)
 
 return function(world)
-    for playerId, teamedCR, playerC in world:queryChanged(Components.Teamed, Components.Player) do
+    for playerId, teamedCR in world:queryChanged(Components.Teamed) do
+        local playerC = world:get(playerId, Components.Player)
+        if not playerC then continue end
         if teamedCR.new and teamedCR.new.teamId then
             -- handle team its just been added to
             local teamEntityId = teamedCR.new.teamId

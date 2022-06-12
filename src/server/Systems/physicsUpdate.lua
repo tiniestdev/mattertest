@@ -50,21 +50,25 @@ local overrides = {
 
 return function(world)
     -- Physics added/changed on existing Instance entity
-    for id, physicsCR, instanceC in world:queryChanged(Components.Physics, Components.Instance) do
+    for id, physicsCR in world:queryChanged(Components.Physics) do
+        local instanceC = world:get(id, Components.Instance)
+        if not instanceC then continue end
         if physicsCR.new and not physicsCR.new.doNotReconcile then
             MatterUtil.getProcedures(instanceC.instance, overrides).onComponentChange(id, physicsCR, instanceC)
         end
     end
 
     -- Instance added/changed on existing entity with Physics
-    for id, instanceCR, physicsC in world:queryChanged(Components.Instance, Components.Physics) do
+    for id, instanceCR in world:queryChanged(Components.Instance) do
+        local physicsC = world:get(id, Components.Physics)
+        if not physicsC then continue end
         if instanceCR.new and not instanceCR.new.doNotReconcile then
             MatterUtil.getProcedures(instanceCR.new.instance, overrides).onInstanceChange(id, instanceCR, physicsC)
         end
     end
 
     -- Update physics components based on roblox physics
-    for id, instanceC, physicsC in world:query(Components.Instance, Components.Transform) do
+    for id, instanceC, physicsC in world:query(Components.Instance, Components.Physics) do
         MatterUtil.getProcedures(instanceC.instance, overrides).observer(id, instanceC, physicsC, world)
     end
 end

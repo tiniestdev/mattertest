@@ -6,7 +6,7 @@ realm = "shared"
 
 [dependencies]
 axis = "sleitnick/axis@0.1.0"
-matter = "evaera/matter@0.1.2"
+matter = "evaera/matter@0.2.0"
 #Net = "vorlias/net@3.0.0"
 Net = "vorlias/net@2.1.4"
 rx = "nightcycle/rx@3.7.3"

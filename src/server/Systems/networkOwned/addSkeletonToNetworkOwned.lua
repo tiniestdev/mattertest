@@ -11,7 +11,9 @@ local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
 
 return function(world)
-    for id, skeletonCR, networkOwnedC in world:queryChanged(Components.Skeleton, Components.NetworkOwned) do
+    for id, skeletonCR in world:queryChanged(Components.Skeleton) do
+        local networkOwnedC = world:get(id, Components.NetworkOwned)
+        if not networkOwnedC then continue end
         if skeletonCR.new then
             -- new skeleton, add it
             world:insert(id, networkOwnedC:patch({
@@ -28,7 +30,9 @@ return function(world)
             -- print(world:get(id, Components.NetworkOwned).instances)
         end
     end
-    for id, networkOwnedCR, skeletonC in world:queryChanged(Components.NetworkOwned, Components.Skeleton) do
+    for id, networkOwnedCR in world:queryChanged(Components.NetworkOwned) do
+        local skeletonC = world:get(id, Components.Skeleton)
+        if not skeletonC then continue end
         if not networkOwnedCR.old then
             -- new, add it
             world:insert(id, networkOwnedCR.new:patch({
