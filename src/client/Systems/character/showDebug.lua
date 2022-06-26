@@ -14,8 +14,10 @@ local MatterIdDisplay = require(ReplicatedStorage.UI.Debug.MatterIdDisplay)
 
 return function(world)
     for entityId, characterCR in world:queryChanged(Components.Character) do
+        if not characterCR.new then continue end
         local instanceC = world:get(entityId, Components.Instance)
         task.delay(0.5, function()
+            if not world:contains(entityId) then return end
             world:insert(entityId, Components.ShowMatterDebug({
                 adornee = instanceC.instance.HumanoidRootPart,
             }))

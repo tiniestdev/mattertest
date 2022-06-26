@@ -11,9 +11,9 @@ local ChangeTeamEvent = MatterUtil.NetSignalToEvent("ChangeTeam", Remotes)
 
 return function(world)
     for playerId, teamedCR in world:queryChanged(Components.Teamed) do
-        local playerC = world:get(playerId, Components.Player)
-        if not playerC then continue end
         if teamedCR.new and teamedCR.new.teamId then
+            local playerC = world:get(playerId, Components.Player)
+            if not playerC then continue end
             -- handle team its just been added to
             local teamEntityId = teamedCR.new.teamId
             local teamC = world:get(teamEntityId, Components.Team)

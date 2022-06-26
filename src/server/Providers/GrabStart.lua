@@ -45,7 +45,7 @@ function GrabStart:AxisStarted()
                     grabOffsetCFrame = grabOffset,
                     grabPointObjectCFrame = grabPoint,
                 }), rtcC:patch({
-                    doNotReplicateTo = player,
+                    blacklist = Llama.List.toSet({player}),
                 }))
                 return true
             else

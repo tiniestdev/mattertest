@@ -1,6 +1,10 @@
 local Loop = require(script.Parent.Loop)
+local useHookState = require(script.Parent.topoRuntime).useHookState
+local World = require(script.Parent.World)
+local component = require(script.Parent).component
+local BindableEvent = require(script.Parent.mock.BindableEvent)
 
-local bindable = Instance.new("BindableEvent")
+local bindable = BindableEvent.new()
 
 return function()
 	describe("Loop", function()
@@ -23,6 +27,99 @@ return function()
 			expect(callCount).to.equal(1)
 			connection.default:Disconnect()
 			expect(callCount).to.equal(1)
+		end)
+
+		it("should allow evicting systems", function()
+			local loop = Loop.new()
+
+			local cleanedUp = false
+			local function customHook()
+				useHookState(nil, function()
+					cleanedUp = true
+				end)
+			end
+
+			local counts = {}
+			local function system1()
+				customHook()
+				counts[1] = (counts[1] or 0) + 1
+			end
+
+			local function system2()
+				counts[2] = (counts[2] or 0) + 1
+			end
+
+			loop:scheduleSystems({ system1, system2 })
+
+			local bindable = BindableEvent.new()
+
+			loop:begin({
+				default = bindable.Event,
+			})
+
+			bindable:Fire()
+
+			expect(cleanedUp).to.equal(false)
+			expect(counts[1]).to.equal(1)
+			expect(counts[2]).to.equal(1)
+
+			loop:evictSystem(system1)
+
+			expect(cleanedUp).to.equal(true)
+
+			bindable:Fire()
+
+			expect(counts[1]).to.equal(1)
+			expect(counts[2]).to.equal(2)
+		end)
+
+		it("should allow replacing systems", function()
+			local state = {}
+			local loop = Loop.new(state)
+
+			local function sampleHook(value)
+				local storage = useHookState()
+
+				if value then
+					storage.value = value
+				end
+
+				return storage.value
+			end
+
+			local function makeSystem(isFirst)
+				return function(state)
+					local param = if isFirst then "sample text" else nil
+					local returnValue = sampleHook(param)
+
+					if isFirst then
+						state.foo = "one"
+					else
+						state.foo = returnValue
+					end
+				end
+			end
+
+			local system1 = makeSystem(true)
+			local system2 = makeSystem(false)
+
+			loop:scheduleSystem(system1)
+
+			local bindable = BindableEvent.new()
+
+			loop:begin({
+				default = bindable.Event,
+			})
+
+			bindable:Fire()
+
+			expect(state.foo).to.equal("one")
+
+			loop:replaceSystem(system1, system2)
+
+			bindable:Fire()
+
+			expect(state.foo).to.equal("sample text")
 		end)
 
 		it("should call systems in order", function()
@@ -158,6 +255,28 @@ return function()
 			expect(called[1]).to.equal(1)
 			expect(called[2]).to.equal(2)
 			expect(called[3]).to.equal(3)
+		end)
+
+		it("should optimize queries of worlds used inside it", function()
+			local world = World.new()
+			local loop = Loop.new(world)
+
+			local A = component()
+
+			world:spawn(A())
+
+			loop:scheduleSystem(function(world)
+				world:query(A)
+			end)
+
+			local bindable = BindableEvent.new()
+			loop:begin({
+				default = bindable.Event,
+			})
+
+			bindable:Fire()
+
+			expect(#world._storages).to.equal(1)
 		end)
 	end)
 end

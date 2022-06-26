@@ -19,7 +19,6 @@ Grab.AxisName = "GrabAxis"
 local MatterClient = require(script.Parent.MatterClient)
 
 function Grab:AxisPrepare()
-    -- print("Grab: Axis prepare")
 end
 
 local function attemptCastGrabRay(world)
@@ -61,10 +60,13 @@ end
 
 function Grab:AxisStarted()
     local world = MatterClient.World
-    
+    print("GrabClient: Waiting for characterId")
+    local characterId = localUtil.waitForCharacterEntityId(world)
+    print("GrabClient: Got id:", characterId)
+
     UserInputService.InputBegan:Connect(function(inputObject)
         if inputObject.UserInputType == Enum.UserInputType.MouseButton1 and inputObject.UserInputState == Enum.UserInputState.Begin then
-            local characterId = localUtil.getMyCharacterEntityId(world)
+            local characterId = localUtil.waitForCharacterEntityId(world)
             local grabberC = world:get(characterId, Components.Grabber)
 
             local raycastResult, grabbableId = attemptCastGrabRay(world)
@@ -82,7 +84,7 @@ function Grab:AxisStarted()
 
             world:insert(characterId, grabberC:patch({
                 grabbableId = grabbableId,
-                grabbableInstance = raycastResult.Instance,
+                -- grabbableInstance = raycastResult.Instance,
                 grabOffsetCFrame = grabOffsetCFrame,
                 grabPointObjectCFrame = grabObjectCFrame,
             }), Components.ClientLocked({
@@ -108,7 +110,7 @@ function Grab:AxisStarted()
         if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
             -- release ANYTHING
             -- TODO
-            local characterId = localUtil.getMyCharacterEntityId(world)
+            local characterId = localUtil.waitForCharacterEntityId(world)
             local grabberC = world:get(characterId, Components.Grabber)
 
             -- world:insert(characterId, grabberC:patch({
@@ -124,6 +126,7 @@ function Grab:AxisStarted()
             }))
 
             task.delay(0.5, function()
+                if not world:contains(characterId) then return end
                 if world:get(characterId, Components.Grabber).grabbableId == nil then
                     world:insert(characterId,
                         Components.ClientLocked({

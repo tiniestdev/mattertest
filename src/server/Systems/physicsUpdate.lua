@@ -60,9 +60,9 @@ return function(world)
 
     -- Instance added/changed on existing entity with Physics
     for id, instanceCR in world:queryChanged(Components.Instance) do
-        local physicsC = world:get(id, Components.Physics)
-        if not physicsC then continue end
         if instanceCR.new and not instanceCR.new.doNotReconcile then
+            local physicsC = world:get(id, Components.Physics)
+            if not physicsC then continue end
             MatterUtil.getProcedures(instanceCR.new.instance, overrides).onInstanceChange(id, instanceCR, physicsC)
         end
     end

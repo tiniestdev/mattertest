@@ -17,6 +17,13 @@ Archetypes.Catalog = {
         "Teamed",
         "Instance",
     },
+    RagdollableArchetype = { -- doesn't include ragdollable so we have to manually check for it
+                            -- this is used to detect if an entity that is CAPABLE of being ragdolled
+                            -- suddenly got its ragdollable component removed for some reason
+        "Skeleton",
+        "Character",
+        "Instance",
+    },
     ToolbarTool = {
         "Equippable",
         "Storable",

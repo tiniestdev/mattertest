@@ -33,6 +33,7 @@ end
 
 return function(world)
     for id, ragdollableCR in world:queryChanged(Components.Ragdollable) do
+        if not ragdollableCR.new then continue end
         local characterC = world:get(id, Components.Character)
         if not characterC then continue end
         local instanceC = world:get(id, Components.Instance)
@@ -42,6 +43,7 @@ return function(world)
         checkRagdoll(ragdollableCR.new, instanceC, skeletonC)
     end
     for id, instanceCR in world:queryChanged(Components.Instance) do
+        if not instanceCR.new then continue end
         local ragdollableC = world:get(id, Components.Ragdollable)
         if not ragdollableC then continue end
         local characterC = world:get(id, Components.Character)
@@ -51,6 +53,7 @@ return function(world)
         checkRagdoll(ragdollableC, instanceCR.new, skeletonC)
     end
     for id, skeletonCR in world:queryChanged(Components.Skeleton) do
+        if not skeletonCR.new then continue end
         local ragdollableC = world:get(id, Components.Ragdollable)
         if not ragdollableC then continue end
         local characterC = world:get(id, Components.Character)

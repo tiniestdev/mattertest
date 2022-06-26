@@ -60,34 +60,53 @@ grabUtil.getGrabbableEntity = function(instance, world)
     return grabbableId, grabbableC
 end
 
+local grabRopeStates = {}
+local otherGrabberStates = {}
+local serverGrabberStates = {}
+
 grabUtil.getGrabRopeState = function(grabberId, world)
-    local storage = Matter.useHookState(grabberId.."Rope", function(storage)
-        local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
-        return result
-    end)
-    return storage
+    if not grabRopeStates[grabberId] then grabRopeStates[grabberId] = {} end
+    local valid = grabUtil.grabberCleanupFunction(grabberId, world, grabRopeStates[grabberId])
+    if not valid then
+        grabRopeStates[grabberId] = nil
+        return {}
+    end
+    return grabRopeStates[grabberId]
+    -- local storage = Matter.useHookState(grabberId.."Rope", function(storage)
+    --     local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
+    --     return result
+    -- end)
+    -- return storage
 end
 
 grabUtil.getOtherGrabberState = function(grabberId, world)
-    local storage = Matter.useHookState(grabberId.."Other", function(storage)
-        local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
-        if not result then
-            print("===")
-            print(grabberId, " cleaning other grabber state of ", grabberId)
-            print(storage)
-            print("===")
-        end
-        return result
-    end)
-    return storage
+    if not otherGrabberStates[grabberId] then otherGrabberStates[grabberId] = {} end
+    local valid = grabUtil.grabberCleanupFunction(grabberId, world, otherGrabberStates[grabberId])
+    if not valid then
+        otherGrabberStates[grabberId] = nil
+        return {}
+    end
+    return otherGrabberStates[grabberId]
+    -- local storage = Matter.useHookState(grabberId.."Other", function(storage)
+    --     local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
+    --     return result
+    -- end)
+    -- return storage
 end
 
 grabUtil.getServerGrabberState = function(grabberId, world)
-    local storage = Matter.useHookState(grabberId.."Server", function(storage)
-        local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
-        return result
-    end)
-    return storage
+    if not serverGrabberStates[grabberId] then serverGrabberStates[grabberId] = {} end
+    local valid = grabUtil.grabberCleanupFunction(grabberId, world, serverGrabberStates[grabberId])
+    if not valid then
+        serverGrabberStates[grabberId] = nil
+        return {}
+    end
+    return serverGrabberStates[grabberId]
+    -- local storage = Matter.useHookState(grabberId.."Server", function(storage)
+    --     local result = grabUtil.grabberCleanupFunction(grabberId, world, storage)
+    --     return result
+    -- end)
+    -- return storage
 end
 
 grabUtil.grabberCleanupFunction = function(grabberId, world, storage)
@@ -101,13 +120,13 @@ grabUtil.grabberCleanupFunction = function(grabberId, world, storage)
         end
     end
     if not world:contains(grabberId) then
-        print("Cleanup due to entity removal")
+        -- print("Cleanup due to entity removal")
         clearStorage()
         return false
     end
     local grabberC = world:get(grabberId, Components.Grabber)
     if not grabberC then
-        print("Cleanup due to component removal")
+        -- print("Cleanup due to component removal")
         clearStorage()
         return false
     end
@@ -118,13 +137,13 @@ grabUtil.grabberCleanupFunction = function(grabberId, world, storage)
         or (not world:get(grabbableId, Components.Grabbable))) then
         
         -- print out the reason
-        if not grabbableId then
-            print("Cleanup due to no grabbableId from grabber id ", grabberId)
-        elseif not world:contains(grabbableId) then
-            print("Cleanup due to grabbableId entity removal")
-        else
-            print("Cleanup due to grabbable component removal")
-        end
+        -- if not grabbableId then
+        --     -- print("Cleanup due to no grabbableId from grabber id ", grabberId)
+        -- elseif not world:contains(grabbableId) then
+        --     -- print("Cleanup due to grabbableId entity removal")
+        -- else
+        --     -- print("Cleanup due to grabbable component removal")
+        -- end
 
         clearStorage()
         return false
@@ -144,7 +163,7 @@ end
 
 grabUtil.getAlignPos = function(parent)
     local alignPos = Instance.new("AlignPosition")
-    alignPos.MaxForce = 2000
+    alignPos.MaxForce = 1200
     alignPos.MaxVelocity = 100
     alignPos.Responsiveness = 30
     alignPos.Parent = parent
@@ -240,10 +259,11 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
             warn("grabberInstance is nil")
             return
         end
-        if not grabberC.grabbableInstance and grabberC.grabPointObjectCFrame then
-            warn("grabbableId is set but grabbableInstance and grabPointObjectCFrame are nil")
+        if not grabberC.grabPointObjectCFrame then
+            warn("grabbableId is set but grabPointObjectCFrame is nil")
             return
         end
+        local grabbableC = world:get(grabberC.grabbableId, Components.Grabbable)
         -- Creation of Goal attachment, our source of truth
         -- It's the attachment that the grabbed part will actually follow
         -- and is entirely disconnected from the player's character/grabber
@@ -260,8 +280,8 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
             local grabbableAttachment = Instance.new("Attachment")
             grabbableAttachment.Name = "GRAB_GrabbableAligner"
             grabbableAttachment.CFrame = grabberC.grabPointObjectCFrame
-            print("grabber:", grabberC)
-            grabbableAttachment.Parent = grabberC.grabbableInstance
+            -- print("grabber:", grabberC)
+            grabbableAttachment.Parent = grabbableC.grabbableInstance
 
             local alignPos = grabUtil.getAlignPos(grabbableAttachment)
             alignPos.Attachment0 = grabbableAttachment
@@ -327,12 +347,11 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
         -- GrabbableAttachment
         -- GrabberGuideAttachment
         -- GrabberAttachment
-        local grabbableCF = grabberC.grabbableInstance.CFrame
+        local grabbableCF = grabbableC.grabbableInstance.CFrame
         local grabberCF = grabberC.grabberInstance.CFrame
 
         -- grabbableId = {};
         -- grabberInstance = {}; -- Define a specific grab PART to use to calculate offset
-        -- grabbableInstance = {}; -- Same
         -- grabOffsetCFrame = {}; -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
         -- grabPointObjectCFrame = {}; -- for players who click a specific point on the grabbable part to manipulate
         local goalCFrame = grabberCF:toWorldSpace(grabberC.grabOffsetCFrame)

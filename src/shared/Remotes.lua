@@ -10,6 +10,7 @@ local Definitions = {
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 120, })
     }),
     RequestEquipEquippable = Net.Definitions.ServerAsyncFunction({}),
+    RequestEntitiesDump = Net.Definitions.ServerAsyncFunction({}),
     RequestReplicateArchetype = Net.Definitions.ServerAsyncFunction({}),
     RequestGrab = Net.Definitions.ServerAsyncFunction({}),
 

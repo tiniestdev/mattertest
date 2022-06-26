@@ -6,6 +6,9 @@
       "$className": "Workspace",
       "Terrain": {
         "$path": "example/terrain.rbxm"
+      },
+      "Level": {
+        "$path": "example/level.rbxm"
       }
     },
     "Lighting": {
@@ -16,19 +19,34 @@
       "$className": "ServerScriptService",
       "Game": {
         "$path": "example/server"
-      },
-      "ExamplePackages": {
-        "$path": "example/Packages"
       }
     },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "$path": "Packages",
+
       "Assets": {
         "$path": "example/assets.rbxm"
       },
-      "Matter": {
-        "$path": "lib"
+      "Lib": {
+        "$path": "Packages",
+        "Matter": {
+          "$path": "lib"
+        }
+      },
+      "Packages": {
+        "$path": "example/Packages"
+      },
+      "Game": {
+        "$path": "example/shared"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Game": {
+          "$path": "example/client"
+        }
       }
     }
   }

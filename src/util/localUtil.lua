@@ -6,10 +6,22 @@ local localUtil = {}
 
 local MAX_MOUSERAY_RANGE = 500
 
+function localUtil.waitForPlayerEntityId(world)
+    local plrId = localUtil.getMyPlayerEntityId(world)
+    if not plrId then
+        while not plrId do
+            plrId = localUtil.getMyPlayerEntityId(world)
+            task.wait()
+        end
+    end
+    return plrId
+end
+
 function localUtil.getMyPlayerEntityId(world)
     for id, playerC, oursC in world:query(Components.Player, Components.Ours) do
         return id
     end
+    return nil
 end
 
 function localUtil.getCamera()
@@ -47,16 +59,25 @@ function localUtil.getSkeletonInstance(world)
 end
 
 function localUtil.getMyCharacterEntityId(world)
-    local playerC = world:get(localUtil.getMyPlayerEntityId(world), Components.Player)
+    local playerId = localUtil.getMyPlayerEntityId(world)
+    local playerC = world:get(playerId, Components.Player)
     if not playerC then
         error("WTF: Could not find player component:\n" .. debug.traceback())
         return nil
     end
     return playerC.characterId
-    -- okay wtf
-    -- for id, characterC, oursC in world:query(Components.Character, Components.Ours) do
-    --     return id
-    -- end
+end
+
+function localUtil.waitForCharacterEntityId(world)
+    local playerId = localUtil.waitForPlayerEntityId(world)
+    local charId = localUtil.getMyCharacterEntityId(world)
+    if not charId then
+        while not charId do
+            charId = localUtil.getMyCharacterEntityId(world)
+            task.wait()
+        end
+    end
+    return charId
 end
 
 function localUtil.castMouseRangedHitWithParams(params, range, origin)

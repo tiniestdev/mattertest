@@ -36,6 +36,10 @@ local function start(node, fn)
 	table.remove(stack, #stack)
 end
 
+local function withinTopoContext()
+	return #stack ~= 0
+end
+
 local function useFrameState()
 	return stack[#stack].node.frame
 end
@@ -115,6 +119,10 @@ local function useHookState(discriminator, cleanupCallback): {}
 
 	local currentFrame = stack[#stack]
 
+	if currentFrame == nil then
+		error("Attempt to access topologically-aware storage outside of a Loop-system context.", 3)
+	end
+
 	if not currentFrame.accessedKeys[baseKey] then
 		currentFrame.accessedKeys[baseKey] = {}
 	end
@@ -153,4 +161,5 @@ return {
 	start = start,
 	useHookState = useHookState,
 	useFrameState = useFrameState,
+	withinTopoContext = withinTopoContext,
 }

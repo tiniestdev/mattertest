@@ -59,10 +59,12 @@ return function(world)
 
     -- Instance added/changed on existing entity with Transform
     for id, instanceCR in world:queryChanged(Components.Instance) do
-        local transformC = world:get(id, Components.Transform)
-        if not transformC then continue end
         if instanceCR.new then
-            MatterUtil.getProcedures(instanceCR.new.instance, overrides).onInstanceChange(id, instanceCR, transformC)
+            local transformC = world:get(id, Components.Transform)
+            if not transformC then continue end
+            if instanceCR.new then
+                MatterUtil.getProcedures(instanceCR.new.instance, overrides).onInstanceChange(id, instanceCR, transformC)
+            end
         end
     end
 

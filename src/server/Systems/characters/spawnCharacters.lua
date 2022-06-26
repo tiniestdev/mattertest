@@ -73,7 +73,7 @@ return function(world)
                 maxCapacity = 10,
             }),
             Components.Equipper({
-                equippableId = Matter.None,
+                -- equippableId = Matter.None,
             }),
             Components.Grabber({
                 -- grabbableId = Matter.None,

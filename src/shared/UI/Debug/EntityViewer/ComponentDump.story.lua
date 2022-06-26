@@ -14,7 +14,7 @@ return function(target)
                 asd = 21,
                 asdsa = 2,
                 s222 = "sd",
-                sdddddd= 99,
+                sdddddd = 99,
                 komi = "wejiowa",
                 ben = "wejiowa",
                 is = "wejiowa",

@@ -15,11 +15,13 @@ return function(world)
         end
     end
     -- Upon team change, respawn player
-    for id, teamedC in world:queryChanged(Components.Teamed) do
-        local playerC = world:get(id, Components.Player)
-        if not playerC then continue end
-        task.defer(function()
-            playerC.player:LoadCharacter()
-        end)
+    for id, teamedCR in world:queryChanged(Components.Teamed) do
+        if teamedCR.new then
+            local playerC = world:get(id, Components.Player)
+            if not playerC then continue end
+            task.defer(function()
+                playerC.player:LoadCharacter()
+            end)
+        end
     end
 end

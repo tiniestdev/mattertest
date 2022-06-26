@@ -118,6 +118,9 @@ function MatterStart:AxisStarted()
         end
     end)
 
+    Remotes.Server:OnFunction("RequestEntitiesDump", function(player)
+        return matterUtil.getEntityViewerData(world)
+    end)
 end
 
 return MatterStart

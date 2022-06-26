@@ -12,6 +12,7 @@ local Components = require(ReplicatedStorage.components)
 local MatterClient = require(script.Parent.MatterClient)
 local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local Remotes = require(ReplicatedStorage.Remotes)
 
 local FusionClient = {}
 
@@ -29,12 +30,8 @@ function FusionClient:AxisStarted()
         storableProps:set(uiUtil.getStorablePropsFromStorage(charStorageId, MatterClient.World))
     end)
 
-    task.wait(1)
-    print("SHOWING")
     local data = matterUtil.getEntityViewerData(MatterClient.World)
-    print(data)
     task.wait()
-    print("SHOWING")
     New "ScreenGui" {
         Name = "FusionClient",
         Parent = Players.LocalPlayer.PlayerGui,
@@ -43,7 +40,23 @@ function FusionClient:AxisStarted()
                 storableProps = storableProps,
             },
             EntityViewer({
-                entityDumps = data
+                entityDumps = data,
+                theme = Color3.new(0, 0.7, 1),
+                refreshCallback = function()
+                    return matterUtil.getEntityViewerData(MatterClient.World)
+                end,
+                position = UDim2.new(0.1, 0, 0.2, 0),
+            }),
+            EntityViewer({
+                entityDumps = data,
+                theme = Color3.new(0, 0.7, 0),
+                refreshCallback = function()
+                    local success, value = Remotes.Client:Get("RequestEntitiesDump"):CallServerAsync(nil):await()
+                    -- print("GOT EQUIP", success, value)
+                    return value
+                    -- Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabOffsetCFrame, grabObjectCFrame):andThen(function(response)
+                end,
+                position = UDim2.new(0.5, 0, 0.2, 0),
             }),
         },
     }

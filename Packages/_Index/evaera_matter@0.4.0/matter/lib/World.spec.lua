@@ -1,6 +1,7 @@
 local World = require(script.Parent.World)
 local Loop = require(script.Parent.Loop)
 local component = require(script.Parent).component
+local BindableEvent = require(script.Parent.mock.BindableEvent)
 
 local function deepEquals(a, b)
 	if type(a) ~= "table" or type(b) ~= "table" then
@@ -40,6 +41,35 @@ end
 
 return function()
 	describe("World", function()
+		it("should be iterable", function()
+			local world = World.new()
+			local A = component()
+			local B = component()
+
+			local eA = world:spawn(A())
+			local eB = world:spawn(B())
+			local eAB = world:spawn(A(), B())
+
+			local count = 0
+			for id, data in world do
+				count += 1
+				if id == eA then
+					expect(data[A]).to.be.ok()
+					expect(data[B]).to.never.be.ok()
+				elseif id == eB then
+					expect(data[B]).to.be.ok()
+					expect(data[A]).to.never.be.ok()
+				elseif id == eAB then
+					expect(data[A]).to.be.ok()
+					expect(data[B]).to.be.ok()
+				else
+					error("unknown entity", id)
+				end
+			end
+
+			expect(count).to.equal(3)
+		end)
+
 		it("should have correct size", function()
 			local world = World.new()
 			world:spawn()
@@ -62,6 +92,22 @@ return function()
 
 			expect(world:contains(id)).to.equal(true)
 			expect(world:contains(1234124124124124124124)).to.equal(false)
+		end)
+
+		it("should allow spawning entities at a specific ID", function()
+			local world = World.new()
+
+			local A = component()
+			local id = world:spawnAt(5, A())
+
+			expect(function()
+				world:spawnAt(5, A())
+			end).to.throw()
+
+			expect(id).to.equal(5)
+
+			local nextId = world:spawn(A())
+			expect(nextId).to.equal(6)
 		end)
 
 		it("should allow inserting and removing components from existing entities", function()
@@ -190,7 +236,7 @@ return function()
 			local expectedResults = {
 				nil,
 				{
-					0,
+					1,
 					{
 						new = {
 							generation = 1,
@@ -201,17 +247,17 @@ return function()
 					1,
 					{
 						new = {
+							generation = 2,
+						},
+						old = {
 							generation = 1,
 						},
 					},
 				},
 				{
-					0,
+					2,
 					{
 						new = {
-							generation = 2,
-						},
-						old = {
 							generation = 1,
 						},
 					},
@@ -221,15 +267,15 @@ return function()
 					1,
 					{
 						old = {
-							generation = 1,
+							generation = 2,
 						},
 					},
 				},
 				{
-					0,
+					2,
 					{
 						old = {
-							generation = 2,
+							generation = 1,
 						},
 					},
 				},
@@ -240,6 +286,7 @@ return function()
 			local additionalQuery = C
 			loop:scheduleSystem(function(w)
 				local ran = false
+
 				for entityId, record in w:queryChanged(A) do
 					if additionalQuery then
 						if w:get(entityId, additionalQuery) == nil then
@@ -270,7 +317,7 @@ return function()
 					local results = {}
 					for entityId, record in w:queryChanged(A) do
 						count += 1
-						results[entityId] = record
+						results[entityId - 1] = record
 					end
 
 					if count == 0 then
@@ -295,8 +342,8 @@ return function()
 				event = "infrequent",
 			})
 
-			local defaultBindable = Instance.new("BindableEvent")
-			local infrequentBindable = Instance.new("BindableEvent")
+			local defaultBindable = BindableEvent.new()
+			local infrequentBindable = BindableEvent.new()
 
 			loop:begin({ default = defaultBindable.Event, infrequent = infrequentBindable.Event })
 
@@ -412,8 +459,30 @@ return function()
 			world:remove(two, Health)
 			world:despawn(one)
 
-			expect(snapshot[1][1]).to.equal(0)
-			expect(snapshot[2][1]).to.equal(2)
+			if snapshot[2][1] == 3 then
+				expect(snapshot[1][1]).to.equal(1)
+			else
+				expect(snapshot[2][1]).to.equal(1)
+			end
+		end)
+
+		it("should not invalidate iterators", function()
+			local world = World.new()
+			local A = component()
+			local B = component()
+			local C = component()
+
+			for _ = 1, 10 do
+				world:spawn(A(), B())
+			end
+
+			local count = 0
+			for id in world:query(A) do
+				count += 1
+				world:insert(id, C())
+				world:remove(id, B)
+			end
+			expect(count).to.equal(10)
 		end)
 	end)
 end

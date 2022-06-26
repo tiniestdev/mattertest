@@ -12,6 +12,12 @@ function toolUtil.makePresetTool(toolName, props, world)
     for componentName, componentProps in pairs(toolInfo) do
         if Components[componentName] then
             local mergedProps = Llama.Dictionary.merge(componentProps, props)
+            
+            -- Things unique to an entity (like instances) should be cloned.
+            if componentName == "Corporeal" then
+                mergedProps.instance = mergedProps.instance:Clone()
+            end
+
             world:insert(entityId,
                 Components[componentName](mergedProps),
                 Components.ReplicateToClient({

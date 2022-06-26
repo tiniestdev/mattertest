@@ -12,26 +12,30 @@ local ragdollUtil = require(ReplicatedStorage.Util.ragdollUtil)
 return function(world)
     -- for every new skeleton added to an entity, call ragdollUtil.initSkeleton()  on it
     for id, skeletonCR in world:queryChanged(Components.Skeleton) do
-        local characterC = world:get(id, Components.Character)
-        if not characterC then continue end
-        local instanceC = world:get(id, Components.Instance)
-        if not instanceC then continue end
+        if skeletonCR.new then
 
-        if not skeletonCR.old then
-            local newSkeleton = ragdollUtil.initSkeleton(instanceC.instance)
-            world:insert(id, skeletonCR.new:patch({
-                skeletonInstance = newSkeleton,
-            }))
-            task.delay(0.5, function()
-                local player = matterUtil.getPlayerFromCharacterEntity(id, world)
-                if player then
-                    for _,v in ipairs(newSkeleton:GetDescendants()) do
-                        if v:IsA("BasePart") then
-                            v:SetNetworkOwner(player)
+            local characterC = world:get(id, Components.Character)
+            if not characterC then continue end
+            local instanceC = world:get(id, Components.Instance)
+            if not instanceC then continue end
+
+            if not skeletonCR.old then
+                local newSkeleton = ragdollUtil.initSkeleton(instanceC.instance)
+                world:insert(id, skeletonCR.new:patch({
+                    skeletonInstance = newSkeleton,
+                }))
+                task.delay(0.5, function()
+                    local player = matterUtil.getPlayerFromCharacterEntity(id, world)
+                    if player then
+                        for _,v in ipairs(newSkeleton:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                v:SetNetworkOwner(player)
+                            end
                         end
                     end
-                end
-            end)
+                end)
+            end
+
         end
     end
 end

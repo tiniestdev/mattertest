@@ -68,34 +68,37 @@ return function(props)
         
         if props.componentData and expanded:get() then
             for k, val in pairs(props.componentData) do
-                local keyStr = tostring(k)
-                
+                -- local keyStr = tostring(k)
+                -- local valStr = ""
+                -- local lines = 1
+                -- if typeof(val) == "Instance" then
+                --     valStr = string.format("%s, a %s", val:GetFullName(), val.ClassName)
+                -- else
+                --     if typeof(val) == "table" then
+                --         for i, v in pairs(val) do
+                --             valStr = valStr .. string.format("\n    %s:\t\t\t%s", tostring(i), tostring(v))
+                --             lines = lines + 1
+                --         end
+                --     else
+                --         valStr = tostring(val)
+                --     end
+                -- end
+
+                local keyStr = "<b>"..tostring(k).."</b>"
                 local valStr = ""
+                local lines = 1
                 if typeof(val) == "Instance" then
-                    valStr = string.format("%s, a %s", val:GetFullName(), val.ClassName)
+                    valStr = string.format("%s, <i>a %s</i>", val:GetFullName(), val.ClassName)
                 else
                     if typeof(val) == "table" then
-                        for i, v in pairs(val) do
-                            valStr = valStr .. string.format("\n    %s:\t\t\t%s", tostring(i), tostring(v))
+                        for i,v in pairs(val) do
+                            valStr = valStr .. string.format("\n    <i>%s</i>:\t%s", tostring(i), tostring(val))
+                            lines = lines + 1
                         end
                     else
                         valStr = tostring(val)
                     end
                 end
-                -- local keyStr = "<b>"..tostring(k).."</b>"
-                
-                -- local valStr = ""
-                -- if typeof(v) == "Instance" then
-                --     valStr = string.format("%s, <i>a %s</i>", v:GetFullName(), v.ClassName)
-                -- else
-                --     if typeof(v) == "table" then
-                --         for i,v in pairs(v) do
-                --             valStr = valStr .. string.format("\n    <i>%s</i>:\t\t\t%s", tostring(i), tostring(v))
-                --         end
-                --     else
-                --         valStr = tostring(v)
-                --     end
-                -- end
 
                 local fieldText = string.format("%s: %s", keyStr, valStr)
                 local bounds = Vector2.new(
@@ -104,7 +107,7 @@ return function(props)
                 )
                 local textBounds = TextService:GetTextSize(fieldText, 12, Enum.Font.Gotham, bounds)
                 table.insert(childrenTab,
-                    New "TextLabel" {
+                    New "TextButton" {
                         Name = "FieldLabel",
                         Font = Enum.Font.Gotham,
                         TextColor3 = Color3.fromRGB(222, 222, 222),
@@ -116,11 +119,15 @@ return function(props)
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
                         RichText = true,
-                        Size = UDim2.new(1, 0, 0, textBounds.Y + 5),
+                        -- Size = UDim2.new(1, 0, 0, textBounds.Y + 5),
+                        Size = UDim2.new(1, 0, 0, (lines*12) + 5),
+                        -- [Fusion.OnEvent("MouseButton1Click")] = function()
+                        --     print(props.componentData)
+                        -- end,
                     }
                 )
 
-                print(fieldText)
+                -- print(fieldText)
             end
         end
 

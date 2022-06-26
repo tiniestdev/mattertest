@@ -38,6 +38,7 @@ return function(world)
     end
 
     for grabberId, grabberCR in world:queryChanged(Components.Grabber) do
+        if not grabberCR.new then continue end
         if not world:get(grabberId, Components.Ours) then continue end
         if grabberCR.new and grabberCR.new.grabbableId then
             if Matter.useThrottle(0.2) then

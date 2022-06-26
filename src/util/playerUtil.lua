@@ -7,6 +7,14 @@ local Rx = require(ReplicatedStorage.Packages.rx)
 
 local playerUtil = {}
 
+function playerUtil.getSetOfPlayers()
+    local set = {}
+    for i,v in ipairs(Players:GetPlayers()) do
+        set[v] = true
+    end
+    return set
+end
+
 function playerUtil.getPlayersObservable()
     return Rx.of(
         Rx.from(Players:GetPlayers()),

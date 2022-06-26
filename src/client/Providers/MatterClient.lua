@@ -71,7 +71,7 @@ function MatterClient:AxisStarted()
 
         if #notReplicatedYet > 0 then
             Remotes.Client:Get("RequestReplicateEntities"):SendToServer(notReplicatedYet)
-            print("Asking server for more", notReplicatedYet)
+            -- print("Asking server for more", notReplicatedYet)
         end
     end)
 

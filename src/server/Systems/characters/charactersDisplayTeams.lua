@@ -8,9 +8,11 @@ local ChangeTeamEvent = MatterUtil.NetSignalToEvent("ChangeTeam", Remotes)
 
 return function(world)
     for id, teamCR in world:queryChanged(Components.Teamed) do
-        local characterC = world:get(id, Components.Character)
-        if not characterC then continue end
-        print("Character changed team: ", characterC, " to ", teamCR)
-        -- some fx here? idfk
+        if teamCR.new then
+            local characterC = world:get(id, Components.Character)
+            if not characterC then continue end
+            -- print("Character changed team: ", characterC, " to ", teamCR)
+            -- some fx here? idfk
+        end
     end
 end

@@ -50,7 +50,7 @@ return function(props)
             Size = UDim2.new(0, 20, 1, 0),
             [Fusion.OnEvent("MouseButton1Click")] = function()
                 expanded:set(not expanded:get())
-                print("expanded: " .. tostring(expanded:get()))
+                -- print("expanded: " .. tostring(expanded:get()))
             end,
         },
 
@@ -99,7 +99,7 @@ return function(props)
         Size = Fusion.Computed(function()
             return UDim2.new(1, 0, 0, expanded:get() and 0 or collapseHeight)
         end),
-
+        LayoutOrder = entityId,
     
         [Children] = {
             New "Frame" {

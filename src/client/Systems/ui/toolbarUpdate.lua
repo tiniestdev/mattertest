@@ -14,16 +14,19 @@ local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 return function(world)
 
     for entityId, storageCR in world:queryChanged(Components.Storage) do
+        if not storageCR.new then continue end
         if not world:get(entityId, Components.Ours) then continue end
         uiUtil.fireUpdateToolbarSignal(world)
     end
 
     for entityId, storableCR in world:queryChanged(Components.Storable) do
+        if not storableCR.new then continue end
         if not world:get(entityId, Components.InToolbar) then continue end
         uiUtil.fireUpdateToolbarSignal(world)
     end
 
     for entityId, storageCR in world:queryChanged(Components.Storage) do
+        if not storageCR.new then continue end
         if not world:get(entityId, Components.Character) then continue end
         if not world:get(entityId, Components.Ours) then continue end
         if storageCR.new then

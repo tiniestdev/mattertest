@@ -132,8 +132,67 @@ function Loop:scheduleSystems(systems: { System })
 	self:_sortSystems()
 end
 
+--[=[
+	Schedules a single system. This is an expensive function to call multiple times. Instead, try batch scheduling
+	systems with [Loop:scheduleSystems] if possible.
+
+	@param system System
+]=]
 function Loop:scheduleSystem(system: System)
 	return self:scheduleSystems({ system })
+end
+
+--[=[
+	Removes a previously-scheduled system from the Loop. Evicting a system also cleans up any storage from hooks.
+	This is intended to be used for hot reloading. Dynamically loading and unloading systems for gameplay logic
+	is not recommended.
+
+	@param system System
+]=]
+function Loop:evictSystem(system: System)
+	if self._systems[system] == nil then
+		error("Can't evict system because it doesn't exist")
+	end
+
+	self._systems[system] = nil
+
+	topoRuntime.start({
+		system = self._systemState[system],
+	}, function() end)
+
+	self._systemState[system] = nil
+
+	self:_sortSystems()
+end
+
+--[=[
+	Replaces an older version of a system with a newer version of the system. Internal system storage (which is used
+	by hooks) will be moved to be associated with the new system. This is intended to be used for hot reloading.
+
+	@param old System
+	@param new System
+]=]
+function Loop:replaceSystem(old: System, new: System)
+	if not self._systems[old] then
+		error("Before system does not exist!")
+	end
+
+	self._systems[new] = new
+	self._systems[old] = nil
+	self._systemState[new] = self._systemState[old] or {}
+	self._systemState[old] = nil
+
+	for system in self._systems do
+		if type(system) == "table" and system.after then
+			local index = table.find(system.after, old)
+
+			if index then
+				system.after[index] = new
+			end
+		end
+	end
+
+	self:_sortSystems()
 end
 
 local function orderSystemsByDependencies(unscheduledSystems: { System })
@@ -245,11 +304,6 @@ end
 
 	&nbsp;
 
-	:::info
-	Events that do not have any systems scheduled to run on them **at the time you call `Loop:begin`** will be skipped
-	and never connected to. All systems should be scheduled before you call this function.
-	:::
-
 	Returns a table similar to the one you passed in, but the values are `RBXScriptConnection` values (or whatever is
 	returned by `:Connect` if you passed in a synthetic event).
 
@@ -260,20 +314,22 @@ function Loop:begin(events)
 	local connections = {}
 
 	for eventName, event in pairs(events) do
-		if not self._orderedSystemsByEvent[eventName] then
-			-- Skip events that have no systems
-			continue
-		end
-
 		local lastTime = os.clock()
 		local generation = false
 
 		local function stepSystems()
+			if not self._orderedSystemsByEvent[eventName] then
+				-- Skip events that have no systems
+				return
+			end
+
 			local currentTime = os.clock()
 			local deltaTime = currentTime - lastTime
 			lastTime = currentTime
 
 			generation = not generation
+
+			local dirtyWorlds = {}
 
 			for _, system in ipairs(self._orderedSystemsByEvent[eventName]) do
 				topoRuntime.start({
@@ -281,6 +337,7 @@ function Loop:begin(events)
 					frame = {
 						generation = generation,
 						deltaTime = deltaTime,
+						dirtyWorlds = dirtyWorlds,
 					},
 				}, function()
 					local fn = systemFn(system)
@@ -301,6 +358,11 @@ function Loop:begin(events)
 							):format(systemName(system))
 						)
 					end
+
+					for world in dirtyWorlds do
+						world:optimizeQueries()
+					end
+					table.clear(dirtyWorlds)
 
 					if not success then
 						if os.clock() - recentErrorLastTime > 10 then

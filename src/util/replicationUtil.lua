@@ -67,10 +67,7 @@ function replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId
         -- print("RECIPIENT ID: ", recipientId)
         -- print("There is no entity in local space that has a server id of ", serverId)
         -- print(SenderToRecipientIds)
-        -- print(serverId)
-        -- print(tostring(serverId))
-        -- print(SenderToRecipientIds[serverId])
-        -- print(SenderToRecipientIds[tostring(serverId)])
+        -- print(typeof(serverId))
         recipientId = world:spawn(
             Components.Replicated({
                 serverId = tonumber(serverId),
@@ -138,20 +135,29 @@ function replicationUtil.serializeArchetypeDefault(archetypeName, entityId, scop
         components[componentName] = world:get(entityId, Components[componentName])
     end
 
-    return {
+    local payload = {
         entityId = entityId,
         scope = scope,
         identifier = identifier,
         archetypeSet = Llama.Set.fromList({archetypeName}),
         components = components,
     }
+    -- print("Serializing archetype", archetypeName, "with payload", payload)
+    return payload
 end
 
 function replicationUtil.deserializeArchetype(archetypeName, payload, world)
+
+    if typeof(payload.serverId) == "table" then
+        print("ERROR: deserializeArchetype called with payload that has no serverId")
+        print(payload)
+    end
+
     local foundMethod = serializers.SerFunctions[archetypeName] and serializers.SerFunctions[archetypeName].deserialize
     if foundMethod then
         return foundMethod(payload, world, replicationUtil)
     else
+        -- print("Deserializing archetype", archetypeName, "with payload", payload)
         return replicationUtil.deserializeArchetypeDefault(archetypeName, payload, world)
     end
 end

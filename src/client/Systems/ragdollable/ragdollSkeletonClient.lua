@@ -14,15 +14,20 @@ local function shouldBeRagdolled(state)
     return state.downed or state.stunned or state.sleeping
 end
 
-local function checkRagdoll(ragdollableC, instanceC, skeletonC)
-    if not instanceC then return end
-    if not skeletonC then return end
+local function checkRagdoll(id, world)
+    if not world:get(id, Components.Character) then return end
+    local instanceC = world:get(id, Components.Instance)
+    -- if not instanceC then return end
+    if not instanceC.instance then return end
+    local skeletonC = world:get(id, Components.Skeleton)
+    -- if not skeletonC then return end
+    if not skeletonC.skeletonInstance then return end
+    local ragdollableC = world:get(id, Components.Ragdollable)
+
     if not ragdollableC then
         -- ragdollable is being removed
         ragdollUtil.UnragdollCharacter(instanceC.instance, skeletonC.skeletonInstance)
     end
-    if not instanceC.instance then return end
-    if not skeletonC.skeletonInstance then return end
 
     if shouldBeRagdolled(ragdollableC) then
         ragdollUtil.Ragdoll(instanceC.instance, skeletonC.skeletonInstance)
@@ -32,25 +37,7 @@ local function checkRagdoll(ragdollableC, instanceC, skeletonC)
 end
 
 return function(world)
-    for id, ragdollableCR, characterC, instanceC, skeletonC in world:queryChanged(Components.Ragdollable) do
-        if not world:get(id, Components.Character) then continue end
-        if not world:get(id, Components.Instance) then continue end
-        if not world:get(id, Components.Skeleton) then continue end
-        if not world:get(id, Components.Ours) then continue end
-        checkRagdoll(ragdollableCR.new, instanceC, skeletonC)
-    end
-    for id, instanceCR, characterC, ragdollableC, skeletonC in world:queryChanged(Components.Instance) do
-        if not world:get(id, Components.Character) then continue end
-        if not world:get(id, Components.Ragdollable) then continue end
-        if not world:get(id, Components.Skeleton) then continue end
-        if not world:get(id, Components.Ours) then continue end
-        checkRagdoll(ragdollableC, instanceCR.new, skeletonC)
-    end
-    for id, skeletonCR, ragdollableC, characterC, instanceC, skeletonC in world:queryChanged(Components.Skeleton) do
-        if not world:get(id, Components.Ragdollable) then continue end
-        if not world:get(id, Components.Character) then continue end
-        if not world:get(id, Components.Instance) then continue end
-        if not world:get(id, Components.Ours) then continue end
-        checkRagdoll(ragdollableC, instanceC, skeletonCR.new)
+    for id, CRs in matterUtil.getChangedEntitiesOfArchetype("RagdollableArchetype", world) do
+        checkRagdoll(id, world)
     end
 end

@@ -43,7 +43,7 @@ for toolKey, toolInfo in pairs(ToolInfos.Catalog) do
         )
     end
     if toolInfo.Corporeal then
-        toolInfo.Corporeal = Llama.Dictionary.merge(
+        ToolInfos.Catalog[toolKey].Corporeal = Llama.Dictionary.merge(
             {
                 instance = Corporeals:FindFirstChild(toolKey),
             },

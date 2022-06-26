@@ -4,6 +4,7 @@ local Matter = require(ReplicatedStorage.Packages.matter)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local grabUtil = require(ReplicatedStorage.Util.grabUtil) 
 local Remotes = require(ReplicatedStorage.Remotes)
+local Llama = require(ReplicatedStorage.Packages.llama)
 
 local ReplicateGrabberOffset = matterUtil.NetSignalToEvent("ReplicateGrabberOffset", Remotes)
 local cframeUtil = require(ReplicatedStorage.Util.cframeUtil)
@@ -26,7 +27,7 @@ return function(world)
             world:insert(characterId, grabberC:patch({
                 grabOffsetCFrame = newOffset,
             }), rtcC:patch({
-                doNotReplicateTo = player,
+                blacklist = Llama.List.toSet({player}),
             }))
         end
     end

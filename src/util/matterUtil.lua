@@ -7,6 +7,7 @@ local Matter = require(ReplicatedStorage.Packages.matter)
 local Llama = require(ReplicatedStorage.Packages.llama)
 local Archetypes = require(ReplicatedStorage.Archetypes)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
+local playerUtil = require(ReplicatedStorage.Util.playerUtil)
 
 local Set = Llama.Set
 
@@ -169,9 +170,9 @@ function matterUtil.cmdrPrintEntityDebugInfo(context, entityId, world)
 end
 
 function matterUtil.getEntityViewerData(world)
-    local id = 0
     local entityDumps = {}
-    while (world:contains(id)) do
+
+    for id, entityData in world do
         local entityDump = {
             entityId = id,
         }
@@ -187,24 +188,33 @@ function matterUtil.getEntityViewerData(world)
             end
         end
 
-        -- list all components it has
-        for compName, compInfo in pairs(ComponentInfo.Catalog) do
-            if not Components[compName] then continue end
-            local comp = world:get(id, Components[compName])
-            if comp then
-                local compDump = {
-                    componentName = compName,
-                    componentData = comp,
-                }
-                componentDumps[compName] = compDump
+        -- print(entityData)
+        for i, compInfo in pairs(entityData) do
+            local compName = tostring(i)
+            local comp = tableUtil.Copy(compInfo)
+            for fieldName, fieldInfo in pairs(compInfo) do
+                comp[fieldName] = comp[fieldName] or "*nil*"
             end
+            componentDumps[compName] = comp
         end
+
+        -- list all components it has
+        -- for compName, compInfo in pairs(ComponentInfo.Catalog) do
+        --     if not Components[compName] then continue end
+        --     local comp = world:get(id, Components[compName])
+        --     if comp then
+        --         comp = tableUtil.Copy(comp)
+        --         for fieldName, fieldInfo in pairs(compInfo) do
+        --             comp[fieldName] = comp[fieldName] or "*nil*"
+        --         end
+        --         componentDumps[compName] = comp
+        --     end
+        -- end
 
         entityDump.componentDumps = componentDumps
         entityDump.headerTags = headerTags
 
         table.insert(entityDumps, entityDump)
-        id = id + 1
     end
 
     return entityDumps
@@ -224,6 +234,9 @@ end
 function matterUtil.isArchetype(entityId, archetypeName, world)
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
     for componentName, _ in pairs(componentSet) do
+        if not world:contains(entityId) then
+            return false
+        end
         if not world:get(entityId, Components[componentName]) then
             return false
         end
@@ -231,90 +244,55 @@ function matterUtil.isArchetype(entityId, archetypeName, world)
     return true
 end
 
-function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, ...)
+function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
     local componentList = tableUtil.FlipNumeric(componentSet)
     local changedEntities = {}
 
     -- cycle through every single component that might have changed
-    -- we need to rotate the list that will go inside the queryChanged, since
-    -- only the FIRST argument will be checked for changes
-    
-    -- rotate componentList
-    for i=1, #componentList do
-        tableUtil.Rotate(componentList)
-        local actualComponents = {}
-        for _, componentName in ipairs(componentList) do
-            table.insert(actualComponents, Components[componentName])
-        end
-        local currentComponentName = componentList[1]
-        -- for id, CR in world:queryChanged(unpack(actualComponents)) do
-        for id, CR in world:queryChanged(actualComponents[1]) do
+    local changed = false
+    for _, currentComponentName in ipairs(componentList) do
+        for id, CR in world:queryChanged(Components[currentComponentName]) do
             if not matterUtil.isArchetype(id, archetypeName, world) then continue end
-            if not changedEntities[id] then
-                changedEntities[id] = {}
-            end
+            if not changedEntities[id] then changedEntities[id] = {} end
             changedEntities[id][currentComponentName] = CR
+            changed = true
         end
     end
 
-    for i, componentName in ipairs(componentList) do
-        for id, componentCR in world:queryChanged(Components[componentName]) do
-            if matterUtil.isArchetype(id, archetypeName, world) then
-                if not changedEntities[id] then
-                    changedEntities[id] = {}
-                end
-                changedEntities[id][componentName] = componentCR
-            end
-        end
-    end
-    
+    -- if changed then
+    --     print("changedentityies: ", changedEntities)
+    -- end
+
     return changedEntities
 end
 
 function matterUtil.replicateChangedArchetypes(archetypeName, world)
     local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 
-    local doNotReplicateEntities = {}
-    local defaultEntities = {}
+    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)) do
 
-    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world, Components.ReplicateToClient)) do
         local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
         
-        if rtcC.doNotReplicateTo then
-            table.insert(doNotReplicateEntities, id)
-        else
-            table.insert(defaultEntities, id)
+        local players = playerUtil.getSetOfPlayers()
+        if rtcC.whitelist then
+            players = rtcC.whitelist
         end
-
-        if not (rtcC.doNotReplicateTo or rtcC.doNotReplicateRecognized) then
-            -- print("!! replicating", id)
-            local componentsChanged = false
-            for componentName, cr in pairs(crs) do
-                componentsChanged = true
+        if rtcC.blacklist then
+            for player, v in pairs(rtcC.blacklist) do
+                players[player] = nil
             end
-            if componentsChanged then
-                replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
-            end
-        else
-            -- print("did not replicate ", id)
         end
-    end
-
-    for _, id in ipairs(doNotReplicateEntities) do
-        local rtcC = world:get(id, Components.ReplicateToClient)
-        world:insert(id, rtcC:patch({
-            doNotReplicateTo = Matter.None,
-            doNotReplicateRecognized = true,
-        }))
-    end
-
-    for _, id in ipairs(defaultEntities) do
-        local rtcC = world:get(id, Components.ReplicateToClient)
-        world:insert(id, rtcC:patch({
-            doNotReplicateTo = Matter.None,
-            doNotReplicateRecognized = false,
-        }))
+        if not (rtcC.whitelist or rtcC.blacklist) then
+            replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
+            -- print("Replicating to all:", id, archetypeName)
+        else
+            for player, v in pairs(players) do
+                replicationUtil.replicateServerEntityArchetypeTo(player, id, archetypeName, world)
+                -- print("Replicating to ", player)
+            end
+        end
     end
 end
 
@@ -368,6 +346,9 @@ function matterUtil.getServerEntityArchetypesOfReferences(payload)
                     assert(refArchetype, "No referenceToArchetype for " .. componentName .. "." .. propertyName)
 
                     -- does the field actually reference an entity or is it nil
+                    -- print(typeof(componentData[propertyName]), componentData[propertyName])
+                    -- print("THe property name: " .. propertyName)
+                    -- print("The referenceToArchetype: " .. refArchetype)
                     table.insert(serverEntities, {
                         entityId = componentData[propertyName],
                         archetype = refArchetype,
@@ -407,8 +388,8 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
     -- A change in an equippable tool changes the beta(s).
     -- the referenceField is camelcase; only lowercase the first letter.
     -- For example: the component name "FruitJuices" should be "fruitJuices".
-    local alphaReferenceField = string.lower(string.sub(alphaName, 1, 1)) .. string.sub(alphaName, 2)
-    local betaReferenceField = string.lower(string.sub(betaName, 1, 1)) .. string.sub(betaName, 2)
+    local alphaReferenceField = matterUtil.camelCaseWord(alphaName) .. "Id" --string.lower(string.sub(alphaName, 1, 1)) .. string.sub(alphaName, 2) .. "Id"
+    local betaReferenceField = matterUtil.camelCaseWord(betaName) .. "Id" --string.lower(string.sub(betaName, 1, 1)) .. string.sub(betaName, 2) .. "Id"
 
     for alphaId, alphaCR in world:queryChanged(Components[alphaName]) do
 
@@ -480,7 +461,7 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
                                     return false
                                 end
                             else
-                                warn("Previous " .. betaName .. " component did not reference " .. alphaReferenceField .. " " .. alphaId .. ", it referenced " .. oldBetaC[alphaReferenceField])
+                                -- warn("Previous " .. betaName .. " component did not reference " .. alphaReferenceField .. " " .. alphaId .. ", it referenced " .. oldBetaC[alphaReferenceField])
                                 -- Though we removed the old beta id, the beta entity never pointed to us in the first place. No need to revert changes
                                 return true
                             end
@@ -490,7 +471,7 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
                             return true
                         end
                     else
-                        warn("Entity " .. oldBetaId .. " does not exist at all")
+                        -- warn("Entity " .. oldBetaId .. " does not exist at all")
                         return true
                     end
                 end
@@ -582,7 +563,7 @@ function matterUtil.linkBidirectionalEntityIdRefs(alphaName, betaName, world)
                                     return false
                                 end
                             else
-                                warn("Previous " .. alphaName .. " component did not reference " .. betaReferenceField .. " " .. betaId .. ", it referenced " .. oldAlphaC[betaReferenceField])
+                                -- warn("Previous " .. alphaName .. " component did not reference " .. betaReferenceField .. " " .. betaId .. ", it referenced " .. oldAlphaC[betaReferenceField])
                                 -- Though we removed the old alpha id, the alpha entity never pointed to us in the first place. No need to revert changes
                                 return true
                             end
@@ -693,8 +674,8 @@ function matterUtil.reconcileManyToOneRelationship(world, atomComponentName, col
                 if newCollectiveId and world:contains(newCollectiveId) then
                     -- print("newCollectiveId:", newCollectiveId)
                     local newCollectiveC = world:get(newCollectiveId, Components[collectiveComponentName])
-                    print("atom ", atomId, "attempting to add to collective ", newCollectiveId)
-                    print(newCollectiveId, "newCollectiveC:", newCollectiveC, collectiveComponentName)
+                    -- print("atom ", atomId, "attempting to add to collective ", newCollectiveId)
+                    -- print(newCollectiveId, "newCollectiveC:", newCollectiveC, collectiveComponentName)
 
                     if canBeAddedCallback and canBeAddedCallback(atomId, newCollectiveId, world) or true then
                         if not matterUtil.isClientLinkLocked(newCollectiveId, world) then

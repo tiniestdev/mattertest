@@ -9,17 +9,19 @@ local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
 
 return function(world)
     for id, storableCR in world:queryChanged(Components.Storable) do
-        local corporealC = world:get(id, Components.Corporeal)
-        if not corporealC then continue end
+        if storableCR.new then
+            local corporealC = world:get(id, Components.Corporeal)
+            if not corporealC then continue end
 
-        if storableCR.new.storageId then
-            world:insert(id, corporealC:patch({
-                purgatory = true
-            }))
-        else
-            world:insert(id, corporealC:patch({
-                purgatory = false
-            }))
+            if storableCR.new.storageId then
+                world:insert(id, corporealC:patch({
+                    purgatory = true
+                }))
+            else
+                world:insert(id, corporealC:patch({
+                    purgatory = false
+                }))
+            end
         end
     end
 end

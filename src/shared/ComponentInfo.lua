@@ -64,6 +64,8 @@ ComponentInfo.Catalog = {
 	ReplicateToClient = {
 		SERVERCOMPONENT = true;
 		archetypes = {};
+		blacklist = {}; -- a set of players to avoid replicating to
+		whitelist = {}; -- a set of players that will be allowed to be replicated to
 	},
 
     -- SHARED COMPONENTS
