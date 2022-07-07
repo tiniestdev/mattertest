@@ -6,6 +6,7 @@ local Intercom = {}
 Intercom.Signals = {}
 Intercom.FusionValues = {}
 Intercom.Blackboard = {}
+Intercom.DespawnMap = {}
 
 function Intercom.Get(signalName)
     if not Intercom.Signals[signalName] then

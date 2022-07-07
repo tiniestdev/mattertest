@@ -40,7 +40,7 @@ grabUtil.getGrabberOffsetCastParams = function(world, grabberC, ignoreList)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Blacklist
     params.FilterDescendantsInstances = ignore
-    -- params.CollisionGroup = "Default"
+    params.CollisionGroup = "Default"
 
     return params
 end
@@ -163,16 +163,22 @@ end
 
 grabUtil.getAlignPos = function(parent)
     local alignPos = Instance.new("AlignPosition")
-    alignPos.MaxForce = 1200
+    -- An average humanoid mass is liek 12.6
+    -- people shouldnt be able to lift over their own weight for surfing and flying
+    -- so we cap it at 12
+    alignPos.MaxForce = 0
     alignPos.MaxVelocity = 100
     alignPos.Responsiveness = 30
     alignPos.Parent = parent
+    -- DO NOT ENABLE REACTION FORCE
+    -- it freezes stuff for some reason
+    alignPos.ReactionForceEnabled = false
     return alignPos
 end
 grabUtil.getAlignRot = function(parent)
     local alignRot = Instance.new("AlignOrientation")
+    alignRot.MaxTorque = 0
     alignRot.MaxAngularVelocity = 4000
-    alignRot.MaxTorque = 1000
     alignRot.Responsiveness = 30
     alignRot.Parent = parent
     return alignRot
@@ -293,6 +299,7 @@ grabUtil.manageClientGrabConnection = function(grabberId, grabberC, world)
             alignRot.Name = "ROT"
             
             state.GrabbableAttachment = grabbableAttachment
+            grabbableC.grabbableInstance:ApplyImpulse(Vector3.new(0,1,0) * 10)
         end
 
         -- Creation of the GrabberGuideAttachment, which only ensures that the

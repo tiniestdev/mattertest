@@ -1,3 +1,4 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = {}
 
 Constants.CollisionNames = {
@@ -7,6 +8,15 @@ Constants.CollisionNames = {
     SKELETON = "Skeleton";
     DEFAULT = "Default";
 }
+
+Constants.FireModes = {
+    Semi = 0,
+    Auto = 1,
+    Burst = 2,
+}
+
+Constants.EPSILON = 0.001
+
 --[[
 	PhysicsService:CollisionGroupSetCollidable(GameConstants.SKELETON_COLLISION_NAME, GameConstants.HRP_COLLISION_NAME, false)
 	PhysicsService:CollisionGroupSetCollidable(GameConstants.SKELETON_COLLISION_NAME, GameConstants.SKELETON_COLLISION_NAME, true)

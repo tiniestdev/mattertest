@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.2] - 2022-07-01
+### Fixed
+- Fixed debugger panel not scrolling.
+- In the debugger panel, the module name is now used when function is not named.
+
+## [0.5.1] - 2022-06-30
+### Fixed
+- Fix custom debugger widgets not using the Plasma instance the user passed in.
+
+## [0.5.0] - 2022-06-30
+### Added
+- Added Matter debugger.
+### Changed
+- Middleware now receive event name as a second parameter
+
 ## [0.4.0] - 2022-06-25
 ### Changed
 - Modifying the World while inside `World:query` can no longer cause iterator invalidation. All operations to World while inside a query are now safe. 🎉

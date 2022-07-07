@@ -111,18 +111,18 @@ ragdollUtil.Ragdoll = function(char, skeleton)
         return
     end
 
-    ragdollUtil.DisableAnimationJoints(char)
     ragdollUtil.EnableSkeletonJoints(skeleton)
+    ragdollUtil.DisableAnimationJoints(char)
 
     local hum = char:FindFirstChild("Humanoid")
     if hum then ragdollUtil.DisableHumanoid(hum) end
-	if animator then
-		animator:ApplyJointVelocities(ragdollUtil.getMotors(char))
-	end
+    if animator then
+        animator:ApplyJointVelocities(ragdollUtil.getMotors(char))
+    end
 
     physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.RAGDOLL)
     physicsUtil.DeepSetCanCollide(skeleton, true)
-    physicsUtil.DeepSetCanCollide(char, false)
+    -- physicsUtil.DeepSetCanCollide(char, false)
 
     -- Maintain momentum at time of ragdoll
     -- this block of code doesn't work, but i might bother to make it work in the future
@@ -171,7 +171,7 @@ ragdollUtil.Unragdoll = function(char, skeleton)
 
     physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.CHAR)
     physicsUtil.DeepSetCanCollide(skeleton, false)
-    physicsUtil.DeepSetCanCollide(char, true)
+    -- physicsUtil.DeepSetCanCollide(char, true)
 
     -- local skeletonTorso = skeleton:FindFirstChild("Torso")
     -- if skeletonTorso then
@@ -186,6 +186,7 @@ end
 
 ragdollUtil.DisableAnimationJoints = function(char)
     for i,v in ipairs(char:GetDescendants())do
+        -- if v:IsA("Motor6D") and v.Name ~= "RagdollHRPWeld" then
         if v:IsA("Motor6D") then
             v.Enabled = false
         end

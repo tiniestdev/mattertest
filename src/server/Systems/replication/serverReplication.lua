@@ -11,44 +11,23 @@ local Archetypes = require(ReplicatedStorage.Archetypes)
 
 local RequestReplicateEntities = matterUtil.NetSignalToEvent("RequestReplicateEntities", Remotes)
 
-local function getArchetypesToReplicate(key)
-    local storage = Matter.useHookState(key, function()
-        -- cleanup function
-        -- never want to clean up lol
-        return true
-    end)
-    return storage
-end
-
-local function init(key)
-    local storage = Matter.useHookState(key, function()
-        -- cleanup function
-        -- never want to clean up lol
-        return true
-    end)
-    if storage.flag == true then
-        return false
-    end
-    storage.flag = true
-    return true
-end
+local archetypesToReplicate
 
 return function(world)
     local removedReplicatedIds = {}
-    local archetypesToReplicate = getArchetypesToReplicate()
 
-    if init() then
+    if not archetypesToReplicate then
         -- print("INITING")
+        archetypesToReplicate = {}
         for i, v in pairs(Archetypes.Catalog) do
             table.insert(archetypesToReplicate, i)
             -- print("!REPLICATING ARCHETYPE: " .. i)
         end
     end
-
-    -- force replicate entities that a client is currently missing
     for i, player, listOfEntityIds in Matter.useEvent(RequestReplicateEntities, "Event") do
         -- print("GOT REQUEST FROM PLAYER TO REPLICATE ENTITIES", player, listOfEntityIds)
         for _, entityId in ipairs(listOfEntityIds) do
+            if not world:contains(entityId) then continue end
             local rtcC = world:get(entityId, Components.ReplicateToClient)
             if rtcC then
                 for _, archetypeName in ipairs(rtcC.archetypes) do
@@ -58,6 +37,8 @@ return function(world)
             end
         end
     end
+
+    -- force replicate entities that a client is currently missing
 
     -- Automatically replicates changes in an entity's archetypes
     -- like if it wanted to take on a different archetype
@@ -102,4 +83,5 @@ return function(world)
     if #removedReplicatedIds > 0 then
         Remotes.Server:Create("DespawnedEntities"):SendToAllPlayers(removedReplicatedIds)
     end
+
 end

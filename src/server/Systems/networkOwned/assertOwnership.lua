@@ -35,11 +35,19 @@ return function(world)
             if instances then
                 -- print(networkOwnedC.networkOwner)
                 if matterUtil.isNone(networkOwnedC.networkOwner) then
-                    physicsUtil.DeepSetNetworkOwner(instances, nil)
+                    if networkOwnedC.auto then
+                        physicsUtil.DeepSetNetworkOwnerAuto(instances)
+                    else
+                        physicsUtil.DeepSetNetworkOwner(instances, nil)
+                    end
                     -- print("controlled by NO ONE")
                 else
                     physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
                     -- print("controlled by", networkOwnedC.networkOwner)
+                    -- task.delay(0.5, function()
+                        -- physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
+                        -- print("controlled by (2) ", networkOwnedC.networkOwner)
+                    -- end)
                 end
                 -- physicsUtil.DeepSetNetworkOwner(instances, networkOwnedC.networkOwner)
             end

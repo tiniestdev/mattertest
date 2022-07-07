@@ -34,11 +34,15 @@ return function(world)
         local startingTools = toolUtil.makePresetTools({
             "Iron",
             "Apple",
+            "Test Gun",
         }, world)
 
         local hum = character:WaitForChild("Humanoid")
         hum.BreakJointsOnDeath = false
         hum.RequiresNeck = false
+
+        local hrp = character:WaitForChild("HumanoidRootPart")
+        local head = character:WaitForChild("Head")
 
         local grabberAtt = Instance.new("Attachment")
         grabberAtt.Name = "Grabber"
@@ -56,6 +60,7 @@ return function(world)
             }),
             Components.Character({
                 playerId = playerEntityId,
+                jumpHeight = 4,
             }),
             Components.Skeleton({}),
             Components.Ragdollable({
@@ -81,8 +86,8 @@ return function(world)
                 -- grabbableInstance = Matter.None; -- Same
                 grabOffsetCFrame = CFrame.new(); -- for a grabber to adjust the offset of the grab point relative to itself, (0,0,0) by default
                 grabPointObjectCFrame = CFrame.new(); -- for players who click a specific point on the grabbable part to manipulate
-                grabStrength = 3000; -- Changes maxforce and maxtorque
-                grabVelocity = 100;
+                grabStrength = 8.5 * workspace.Gravity; -- Changes maxforce and maxtorque
+                grabVelocity = 30;
                 grabResponsiveness = 30;
                 grabEffectRadiusStart = 5; -- at this distance, it will begin to fade away due to distance
                 grabEffectRadiusEnd = 17; -- at this distance, the grab will be completely faded away and nonexistent
@@ -92,6 +97,10 @@ return function(world)
             }),
             Components.Teamed({
                 teamId = world:get(playerEntityId, Components.Teamed).teamId,
+            }),
+            Components.Aimer({
+                -- set nothing, player will constantly update
+                aimerInstance = head,
             })
         )
 

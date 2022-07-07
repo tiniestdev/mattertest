@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local Matter = require(ReplicatedStorage.Packages.matter)
+local Plasma = require(ReplicatedStorage.Packages.plasma)
 local Llama = require(ReplicatedStorage.Packages.llama)
 local Components = require(ReplicatedStorage.components)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
@@ -21,13 +22,17 @@ local MatterStart = {}
 
 MatterStart.AxisName = "MatterStartAxis"
 MatterStart.World = Matter.World.new()
+MatterStart.Debugger = Matter.Debugger.new(Plasma)
+local debugger = MatterStart.Debugger
+local widgets = debugger:getWidgets()
 local world = MatterStart.World
+local debugState = {}
 
 local RDM = Random.new()
 
 function MatterStart:AxisPrepare()
     -- print("MatterStart: Axis prepare")
-    MatterStart.MainLoop = Matter.Loop.new(world)
+    MatterStart.MainLoop = Matter.Loop.new(world, debugState, widgets)
     -- print("MatterStart: Made Matter World + Loop")
     -- print("MatterStart: Starting systems...")
     local systems = {}
@@ -37,7 +42,13 @@ function MatterStart:AxisPrepare()
         end
     end
 
+    debugger.authorize = function(plr)
+        if RunService:IsStudio() then return true end
+        return plr:GetRankInGroup(4575704) >= 253
+    end
+
     -- print("MatterStart: Scheduling systems")
+    debugger:autoInitialize(MatterStart.MainLoop)
     MatterStart.MainLoop:scheduleSystems(systems)
     MatterStart.MainLoop:begin({ default = RunService.Heartbeat })
 

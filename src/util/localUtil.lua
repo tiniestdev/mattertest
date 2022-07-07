@@ -80,6 +80,33 @@ function localUtil.waitForCharacterEntityId(world)
     return charId
 end
 
+function localUtil.getDefaultLocalCastParams(world, ignoreList)
+    local characterId = localUtil.getMyCharacterEntityId(world)
+
+    local ignore = {
+        Players.LocalPlayer.Character,
+        workspace.CurrentCamera,
+    }
+
+    local skeletonC = world:get(characterId, Components.Skeleton)
+    if skeletonC then table.insert(ignore, skeletonC.skeletonInstance) end
+    local instanceC = world:get(characterId, Components.Instance)
+    if instanceC then table.insert(ignore, instanceC.instance) end
+
+    if ignoreList then
+        for _, v in ipairs(ignoreList) do
+            table.insert(ignore, v)
+        end
+    end
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = ignore
+    params.CollisionGroup = "Default"
+
+    return params
+end
+
 function localUtil.castMouseRangedHitWithParams(params, range, origin)
     local castResult, castPosition = localUtil.castMouseWithParams(params)
     if castResult and (castPosition - origin).Magnitude < range then

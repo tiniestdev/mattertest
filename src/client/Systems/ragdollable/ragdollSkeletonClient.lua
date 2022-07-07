@@ -26,13 +26,14 @@ local function checkRagdoll(id, world)
 
     if not ragdollableC then
         -- ragdollable is being removed
-        ragdollUtil.UnragdollCharacter(instanceC.instance, skeletonC.skeletonInstance)
-    end
-
-    if shouldBeRagdolled(ragdollableC) then
-        ragdollUtil.Ragdoll(instanceC.instance, skeletonC.skeletonInstance)
-    else
         ragdollUtil.Unragdoll(instanceC.instance, skeletonC.skeletonInstance)
+    else
+        -- THIS KEEPS DOING WEIRD STUFF TO COLLISION ON CHAR
+        if shouldBeRagdolled(ragdollableC) then
+            -- ragdollUtil.Ragdoll(instanceC.instance, skeletonC.skeletonInstance)
+        else
+            -- ragdollUtil.Unragdoll(instanceC.instance, skeletonC.skeletonInstance)
+        end
     end
 end
 

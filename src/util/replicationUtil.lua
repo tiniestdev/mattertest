@@ -9,6 +9,7 @@ local Archetypes = require(ReplicatedStorage.Archetypes)
 local serializers = require(ReplicatedStorage.Util.serializers)
 local Remotes = require(ReplicatedStorage.Remotes)
 
+local Intercom = require(ReplicatedStorage.Intercom)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 
@@ -61,6 +62,11 @@ function replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
 end
 
 function replicationUtil.getOrCreateReplicatedEntityFromScopeIdentifier(serverId, scope, identifier, archetypeNamesSet, world)
+    if Intercom.DespawnMap[serverId] then
+        Intercom.DespawnMap[serverId] = nil
+        -- print("Preemptively caught despawned entity " .. serverId)
+        return nil
+    end
     local recipientId = replicationUtil.senderIdToRecipientId(serverId) or replicationUtil.getRecipientIdFromScopeIdentifier(scope, identifier)
 
     if recipientId == nil then
@@ -190,7 +196,12 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         end
     end
     if not mainRecipientId then
-        mainRecipientId = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+        local newEntity = replicationUtil.getOrCreateReplicatedEntityFromPayload(payload, world)
+        if not newEntity then
+            warn("Failed to create mainRecipient entity from payload (may have been deleted serverside already)")
+            print(payload)
+        end
+        mainRecipientId = newEntity
     end
 
 
@@ -200,6 +211,11 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
     for _, entityInfo in ipairs(serverEntitiesInfos) do
         local serverId = entityInfo.entityId
         local secondaryEntityRecipientId = replicationUtil.getOrCreateReplicatedEntity(serverId, Llama.Set.fromList({entityInfo.archetype}), world)
+        if not secondaryEntityRecipientId then
+            warn("Failed to create seconaryEntityRecipient entity from entityInfo (may have been deleted serverside already)")
+            print(entityInfo)
+        end
+
         replicationUtil.mapSenderIdToRecipientId(serverId, secondaryEntityRecipientId)
         -- idk how we'd handle scope and identifier below
         -- replicationUtil.setRecipientIdScopeIdentifier(secondaryEntityRecipientId, payload.scope, payload.identifier)
@@ -308,6 +324,10 @@ function replicationUtil.insertOrUpdateComponent(entityId, componentName, newDat
         currComponent = world:get(entityId, Components[componentName])
     end
     return currComponent
+end
+
+function replicationUtil.getServerLookup()
+    return EntityLookup[replicationUtil.SERVERSCOPE]
 end
 
 -- For clients

@@ -36,6 +36,11 @@ return function(world)
                 return singularPlayer, noGrabbers
             end
 
+            -- apply a quick impulse toward the goal just to snap a sleeping part out of it
+            -- local toGoal = state.GoalAttachment.WorldPosition - grabbableInstance.Position
+            -- grabbableInstance:ApplyImpulse(toGoal * 10)
+            grabbableInstance:ApplyImpulse(Vector3.new(0,1,0) * 10)
+
             local singularPlayer, noGrabbers = getGrabbableStatus()
 
             if noGrabbers then
@@ -43,6 +48,7 @@ return function(world)
                     local networkOwnedC = world:get(id, Components.NetworkOwned)
                     world:insert(id, networkOwnedC:patch({
                         networkOwner = Matter.None,
+                        auto = true,
                     }));
                 end
             else
@@ -52,6 +58,7 @@ return function(world)
                         local networkOwnedC = world:get(id, Components.NetworkOwned)
                         world:insert(id, networkOwnedC:patch({
                             networkOwner = singularPlayer,
+                            auto = false,
                         }));
                     end
                 else
@@ -60,6 +67,7 @@ return function(world)
                         local networkOwnedC = world:get(id, Components.NetworkOwned)
                         world:insert(id, networkOwnedC:patch({
                             networkOwner = Matter.None,
+                            auto = false,
                         }));
                     end
                 end

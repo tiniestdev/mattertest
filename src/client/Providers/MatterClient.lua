@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Matter = require(ReplicatedStorage.Packages.matter)
+local Plasma = require(ReplicatedStorage.Packages.plasma)
 local Components = require(ReplicatedStorage.components)
 local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
@@ -17,6 +18,7 @@ local grabUtil = require(ReplicatedStorage.Util.grabUtil)
 
 local Remotes = require(ReplicatedStorage.Remotes)
 local Net = require(ReplicatedStorage.Packages.Net)
+local Rx = require(ReplicatedStorage.Packages.rx)
 
 local Intercom = require(ReplicatedStorage.Intercom)
 
@@ -28,10 +30,15 @@ MatterClient.AxisName = "MatterClientAxis"
 MatterClient.World = Matter.World.new()
 MatterClient.ServerToClientIds = {}
 MatterClient.OurPlayerEntityId = nil
+MatterClient.Debugger = Matter.Debugger.new(Plasma)
+local debugger = MatterClient.Debugger
+local widgets = debugger:getWidgets()
 local world = MatterClient.World
+local debugState = {}
 
 function MatterClient:AxisPrepare()
-    MatterClient.MainLoop = Matter.Loop.new(MatterClient.World)
+    MatterClient.MainLoop = Matter.Loop.new(world, debugState, widgets)
+
     local systems = {}
     for _, systemModule in ipairs(script.Parent.Parent.Systems:GetDescendants()) do
         if systemModule:IsA("ModuleScript") then
@@ -39,6 +46,7 @@ function MatterClient:AxisPrepare()
         end
     end
 
+    debugger:autoInitialize(MatterClient.MainLoop)
     MatterClient.MainLoop:scheduleSystems(systems)
     MatterClient.MainLoop:begin({ default = RunService.Stepped})
 
@@ -51,6 +59,26 @@ function MatterClient:AxisStarted()
     MatterClient.OurPlayerEntityId = localPlayerId
     replicationUtil.setRecipientIdScopeIdentifier(localPlayerId, Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
     world:insert(localPlayerId, Components.Ours({}))
+
+    -- ensure that we know to despawn entities first
+    Remotes.Client:WaitFor("DespawnedEntities"):andThen(function(remoteInstance)
+        remoteInstance:Connect(function(list)
+            Rx.from(list):Pipe({
+                Rx.map(function(entityId)
+                    local recipientId = replicationUtil.senderIdToRecipientId(entityId)
+                    if not recipientId then
+                        Intercom.DespawnMap[entityId] = true
+                        return nil
+                    end
+                    return recipientId
+                end),
+            }):Subscribe(function(recipientId)
+                if recipientId then
+                    world:despawn(recipientId)
+                end
+            end)
+        end)
+    end)
 
     -- request replicatable entities
     Remotes.Client:Get("RequestReplicatedEntites"):CallServerAsync():andThen(function(response)
@@ -162,6 +190,13 @@ function MatterClient:AxisStarted()
                     }))
                 end
             end)
+        end
+    end)
+
+    UserInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.F4 then
+            print("TOGGLING DEBUGGER")
+            debugger:toggle()
         end
     end)
 end

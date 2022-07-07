@@ -9,7 +9,12 @@ dependencies = []
 
 [[package]]
 name = "evaera/matter"
-version = "0.4.0"
+version = "0.5.2"
+dependencies = [["TestEZ", "roblox/testez@0.4.1"]]
+
+[[package]]
+name = "evaera/plasma"
+version = "0.3.0"
 dependencies = [["TestEZ", "roblox/testez@0.4.1"]]
 
 [[package]]
@@ -65,7 +70,7 @@ dependencies = []
 [[package]]
 name = "tinydev/tomfoolery"
 version = "0.1.0"
-dependencies = [["Net", "vorlias/net@2.1.4"], ["axis", "sleitnick/axis@0.1.0"], ["llama", "freddylist/llama@1.1.1"], ["matter", "evaera/matter@0.4.0"], ["promise", "evaera/promise@4.0.0"], ["rx", "nightcycle/rx@3.7.3"], ["signal", "sleitnick/signal@1.1.0"]]
+dependencies = [["Net", "vorlias/net@2.1.4"], ["axis", "sleitnick/axis@0.1.0"], ["llama", "freddylist/llama@1.1.1"], ["matter", "evaera/matter@0.5.2"], ["plasma", "evaera/plasma@0.3.0"], ["promise", "evaera/promise@4.0.0"], ["rx", "nightcycle/rx@3.7.3"], ["signal", "sleitnick/signal@1.1.0"]]
 
 [[package]]
 name = "vorlias/net"

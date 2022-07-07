@@ -63,6 +63,8 @@ ComponentInfo.Catalog = {
 	-- SERVER COMPONENTS
 	ReplicateToClient = {
 		SERVERCOMPONENT = true;
+		disabled = {};
+		replicateFlag = {}; -- use in conjunction with disabled. Will force replication, then immediately reset back to false.
 		archetypes = {};
 		blacklist = {}; -- a set of players to avoid replicating to
 		whitelist = {}; -- a set of players that will be allowed to be replicated to
@@ -199,12 +201,101 @@ ComponentInfo.Catalog = {
 	},
 	
 	GunTool = {
+		-- STATE (initialized in systems)
+		reloading = {}, -- user input determines this, can be held down
+		triggered = {}, -- user input determines this, can be held down
+		firing = {}, -- is it actually firing a bullet rn
+		ammoInMag = {},
+		ammoInStorage = {},
+		fireMode = {},
+		
+		-- CONFIGURATION
+		-- should coexist with ToolbarTool archetype
+		storageCapacity = {}, -- set to -1 for infinite, default is 100
+		magCapacity = {}, -- set to -1 for infinite, default is 20
+		
+		fireRate = {}, -- bullets per second
+		bulletsPerShot = {}, -- number of bullets per shot, default 1
+		fireModes = {}, -- set of fire modes, default Semi
+		--[[
+			0 = Semi
+			1 = Auto
+			2 = Burst
+		]]
 
+		flatSpread = {}, -- *flat* angle in degrees applied to any bullet, default 0
+		fireSpread = {}, -- angle in degrees AFTER firing, default 0
+		recoilKnockback = {}, -- knockback in force, default 0
+		barrelSpeed = {}, -- base speed of bullets leaving it, default 100
+		roundType = {}, -- string of bullet type/ rounds type, default "Default"
+
+		attachments = {}, -- set of attachments it has equipped
+		modifiers = {}, -- set of modifiers it has equipped (can affect bullets and gun)
+	},
+	Projectile = {
+		-- REPLICATION STUFF
+		active = {}, -- can pause/disable simulation if set to false
+
+		-- STATE
+		cframe = {}, -- cframe of the projectile
+		velocity = {}, -- speed and direction
+		life = {}, -- how long it has been alive
+		bounces = {}, -- current bounces it used up
+		traveledDistance = {}, -- how far it has traveled in studs
+		penetratedDistance = {}, -- how far it has penetrated through solids so far
+
+		-- CONFIG
+		ignoreList = {},
+		beamObj = {}, -- will clone from this reference instance
+		trailObj = {}, -- will clone from this reference instance
+		trailWidth = {}, -- width of the trail, default 0.2
+		gravity = {}, -- gravity applied to the projectile studs per second
+		lifetime = {}, -- lifespan in seconds, default is 10 seconds, -1 forever
+		maxDistance = {}, -- max distance in studs before dying, default is 500 studs
+		--[[
+			bounce system: at each hit, a bullet has a chance to bounce.
+			if it bounces, reflects off hit surface and continues its path
+			if it doesn't bounce, it tries to penetrate.
+			if it penetrates all the way into empty space it continues
+			if it doesn't penetrate all the way, it dies.
+			if there are no bounces left, it dies.
+		]]
+		minBounces = {}, -- gauranteed bounces per life
+		bounceChance = {}, -- bounce chance per intersection, default is 0.1
+		maxBounces = {}, -- potential bounces per life, default 1
+		elasticity = {}, -- how much momentum it retains after bouncing, default 0.7
+		penetration = {}, -- studs, default 0.5
+		collisionGroup = {}, -- string, determines what can be collided/interacted with
+	},
+	Round = {
+		-- This component describes the effects of any projectile hit.
+		-- Velocity/motion properties should be handled realtime by Projectile components.
+		-- speed = {}, -- default to gun's bulletSpeed
+		baseDamage = {}, -- default to 20, damage applied to humanoids
+		knockback = {}, -- default to 0, force applied to hit parts
+		-- explosive = {}, -- default to false (can be modified via components)
+	},
+	Explosive = {
+		radius = {}, -- default to 50 studs, max range of effect
+		deadRadius = {}, -- default to 5 studs. within this, max effect
+		maxDamage = {}, -- 200
+		maxKnockback = {}, -- default to 100, max force applied to hit parts
 	},
 	MeleeTool = {
 
 	},
 
+	Aimer = { -- for any entity that involves aiming/having its direction of aim (characters, sentries, etc)
+		aimerInstance = {}, -- all below are relative to this instance's CFrame
+		aimerCFrame = {}, -- all below are relative to this CFrame, overrides aimerInstance if set
+
+		-- Pitch and yaw should be replicated very frequently
+		
+		pitch = {}, -- (up and down look) (in radians)
+		yaw = {}, -- (side to side turns) (in radians)
+		roll = {}, -- (tilt) (in radians, less used)
+		target = {}, -- world position to look at (Vector3)
+	},
 	Equipper = {
 		equippableId = {
             isReference = true;
@@ -236,6 +327,10 @@ ComponentInfo.Catalog = {
 	Corporeal = {
 		instance = {},
 	}, -- does it have a physical form? (Some instances aren't corporeal)
+
+	Turret = {
+		turretModel = {},
+	},
 }
 
 ComponentInfo.getReplicateNilFields = function(componentName)

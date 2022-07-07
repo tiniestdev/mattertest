@@ -263,17 +263,25 @@ function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)
     -- if changed then
     --     print("changedentityies: ", changedEntities)
     -- end
-
     return changedEntities
 end
 
 function matterUtil.replicateChangedArchetypes(archetypeName, world)
     local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 
-    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)) do
+    local resetFlagsForIds = {}
 
+    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)) do
         local rtcC = world:get(id, Components.ReplicateToClient)
         if not rtcC then continue end
+        if rtcC.disabled then
+            if rtcC.replicateFlag then
+                --proceed normally
+                table.insert(resetFlagsForIds, id)
+            else
+                continue
+            end
+        end
         
         local players = playerUtil.getSetOfPlayers()
         if rtcC.whitelist then
@@ -293,6 +301,14 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
                 -- print("Replicating to ", player)
             end
         end
+    end
+
+    for _, id in ipairs(resetFlagsForIds) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
+        world:insert(id, rtcC:patch({
+            replicateFlag = false,
+        }))
     end
 end
 

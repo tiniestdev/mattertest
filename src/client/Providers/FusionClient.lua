@@ -39,25 +39,25 @@ function FusionClient:AxisStarted()
             Main {
                 storableProps = storableProps,
             },
-            EntityViewer({
-                entityDumps = data,
-                theme = Color3.new(0, 0.7, 1),
-                refreshCallback = function()
-                    return matterUtil.getEntityViewerData(MatterClient.World)
-                end,
-                position = UDim2.new(0.1, 0, 0.2, 0),
-            }),
-            EntityViewer({
-                entityDumps = data,
-                theme = Color3.new(0, 0.7, 0),
-                refreshCallback = function()
-                    local success, value = Remotes.Client:Get("RequestEntitiesDump"):CallServerAsync(nil):await()
-                    -- print("GOT EQUIP", success, value)
-                    return value
-                    -- Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabOffsetCFrame, grabObjectCFrame):andThen(function(response)
-                end,
-                position = UDim2.new(0.5, 0, 0.2, 0),
-            }),
+            -- EntityViewer({
+            --     entityDumps = data,
+            --     theme = Color3.new(0, 0.7, 1),
+            --     refreshCallback = function()
+            --         return matterUtil.getEntityViewerData(MatterClient.World)
+            --     end,
+            --     position = UDim2.new(0.1, 0, 0.2, 0),
+            -- }),
+            -- EntityViewer({
+            --     entityDumps = data,
+            --     theme = Color3.new(0, 0.7, 0),
+            --     refreshCallback = function()
+            --         local success, value = Remotes.Client:Get("RequestEntitiesDump"):CallServerAsync(nil):await()
+            --         -- print("GOT EQUIP", success, value)
+            --         return value
+            --         -- Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabOffsetCFrame, grabObjectCFrame):andThen(function(response)
+            --     end,
+            --     position = UDim2.new(0.5, 0, 0.2, 0),
+            -- }),
         },
     }
 end

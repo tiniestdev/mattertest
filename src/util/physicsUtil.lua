@@ -154,6 +154,17 @@ function physicsUtil.DeepSetAnchored(target, state)
 	end)
 end
 
+function physicsUtil.DeepSetNetworkOwnerAuto(target)
+	--delegate most work to deep task
+	physicsUtil.DeepTask(target, function(part)
+		if part:CanSetNetworkOwnership() then
+			part:SetNetworkOwnershipAuto()
+		else
+			warn("could not set network owner of ",part:GetFullName())
+			-- print(debug.traceback())
+		end
+	end)
+end
 function physicsUtil.DeepSetNetworkOwner(target, owner)
 	--delegate most work to deep task
 	physicsUtil.DeepTask(target, function(part)
@@ -207,12 +218,24 @@ physicsUtil.weldPartsStrong = function(part0, part1)
     w.Parent = part0
     forceWeld()
 
-    w:GetPropertyChangedSignal("Enabled"):Connect(function()
+	local enabledSignal
+	local parentSignal
+    enabledSignal = w:GetPropertyChangedSignal("Enabled"):Connect(function()
         if not w.Enabled then
             print("physicsUtil: DETECT WELD CHANGE")
             forceWeld()
         end
     end)
+	-- parentSignal = w.AncestryChanged:Connect(function(child, parent)
+	-- 	if not parent then
+	-- 		if part0.Parent and part1.Parent then
+	-- 			print("physicsUtil: REWELDING")
+	-- 			enabledSignal:Disconnect()
+	-- 			parentSignal:Disconnect()
+	-- 			physicsUtil.weldPartsStrong(part0, part1)
+	-- 		end
+	-- 	end
+	-- end)
 
     return w
 end

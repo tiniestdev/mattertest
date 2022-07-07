@@ -26,6 +26,11 @@ local Definitions = {
     }),
 
     ProposeRagdollState = Net.Definitions.ServerAsyncFunction({}),
+    UpdateAimerPitchYaw = Net.Definitions.ClientToServerEvent({
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60 * 20, })
+    }),
+
+    BounceFX = Net.Definitions.ServerToClientEvent({ }),
 
     -- REPLICATIONS
     ReplicateArchetype = Net.Definitions.ServerToClientEvent({ }),

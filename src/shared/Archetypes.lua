@@ -16,6 +16,7 @@ Archetypes.Catalog = {
         "Grabber",
         "Teamed",
         "Instance",
+        "Aimer",
     },
     RagdollableArchetype = { -- doesn't include ragdollable so we have to manually check for it
                             -- this is used to detect if an entity that is CAPABLE of being ragdolled
@@ -33,6 +34,10 @@ Archetypes.Catalog = {
         "Grabbable",
         "Instance",
     },
+    BulletArchetype = {
+        "Projectile", --do NOT replicate every single movement of the projectile
+        "Round",
+    }
 }
 
 return Archetypes

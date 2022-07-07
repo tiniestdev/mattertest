@@ -10,13 +10,14 @@ function vecUtil.randomColor()
     )
 end
 
-function vecUtil.randomVel(noise)
+function vecUtil.randomVec(noise)
     return Vector3.new(
         RDM:NextNumber(-noise, noise),
         RDM:NextNumber(-noise, noise),
         RDM:NextNumber(-noise, noise)
     )
 end
+vecUtil.randomVel = vecUtil.randomVec
 
 
 return vecUtil
