@@ -60,6 +60,19 @@ function projectileUtil.fireRound(cframe, velocity, roundName, ignoreList, world
     return id
 end
 
+function projectileUtil.castResultOfProjectile(projectileId, projectileC, overrideCurrCFrame, overrideCurrVelocity, timeDelta, params)
+    if not params then
+        params = RaycastParams.new()
+        params.CollisionGroup = projectileC.collisionGroup
+        params.FilterType = Enum.RaycastFilterType.Blacklist
+        params.FilterDescendantsInstances = projectileC.ignoreList
+    end
+    local newOffset = (overrideCurrVelocity or projectileC.velocity) * timeDelta
+    return workspace:Raycast((overrideCurrCFrame.Position or projectileC.cframe.Position), newOffset, params) or {
+        Position = (overrideCurrCFrame.Position or projectileC.cframe.Position) + newOffset,
+    }
+end
+
 function projectileUtil.stepProjectileUntilHit(projectileId, projectileC, timeDelta, world)
     if projectileC.traveledDistance >= projectileC.maxDistance then
         return {
@@ -80,19 +93,15 @@ function projectileUtil.stepProjectileUntilHit(projectileId, projectileC, timeDe
     -- local events = {}
     local hit = false
     local castResult
+    local params = RaycastParams.new()
+    params.CollisionGroup = projectileC.collisionGroup
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = projectileC.ignoreList
 
     while (not hit) and (distanceToTravel > 0) and (iters < MAX_ITERS) do
-        currVelocity = currVelocity + (gravity * timeDelta)
-        local newOffset = currVelocity * timeDelta
-
-        local params = RaycastParams.new()
-        params.CollisionGroup = projectileC.collisionGroup
-        params.FilterType = Enum.RaycastFilterType.Blacklist
-        params.FilterDescendantsInstances = projectileC.ignoreList
-        castResult = workspace:Raycast(currCFrame.Position, newOffset, params)
-        local finalPos = currCFrame.Position + newOffset
-        if castResult then
-            finalPos = castResult.Position
+        castResult = projectileUtil.castResultOfProjectile(projectileId, projectileC, currCFrame, currVelocity, timeDelta, params)
+        local finalPos = castResult.Position
+        if castResult.Instance then
             hit = true
         end
 
@@ -100,7 +109,7 @@ function projectileUtil.stepProjectileUntilHit(projectileId, projectileC, timeDe
         distanceToTravel = distanceToTravel - actualDistanceTraveled
 
         currCFrame = CFrame.new(finalPos, finalPos + currVelocity)
-
+        currVelocity = currVelocity + (gravity * timeDelta)
         iters = iters + 1
     end
 
@@ -127,7 +136,7 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
 
     local totalStepTravelDistance = projectileC.velocity.Magnitude * timeDelta
     local distanceToTravel = totalStepTravelDistance
-    local MAX_ITERS = projectileC.maxBounces + 10
+    local MAX_ITERS = projectileC.maxBounces + 20
     local iters = 0
 
     local currCFrame = projectileC.cframe
@@ -137,28 +146,26 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
     local life = projectileC.life
     local currPenetration = projectileC.penetratedDistance
 
-    local bounceEvents = {}
+    local interactions = {}
     local destroyed = false
     local updateReplication = false
+    local params = RaycastParams.new()
+    params.CollisionGroup = projectileC.collisionGroup
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = projectileC.ignoreList
 
     while (not destroyed) and (distanceToTravel > 0) and (iters < MAX_ITERS) do
-        currVelocity = currVelocity + (gravity * timeDelta)
-        local newOffset = currVelocity * timeDelta
+        local castResult = projectileUtil.castResultOfProjectile(projectileId, projectileC, currCFrame, currVelocity, timeDelta, params)
+        local finalPos = castResult.Position
 
-        local params = RaycastParams.new()
-        params.CollisionGroup = projectileC.collisionGroup
-        params.FilterType = Enum.RaycastFilterType.Blacklist
-        params.FilterDescendantsInstances = projectileC.ignoreList
-        local castResult = workspace:Raycast(currCFrame.Position, newOffset, params)
-        local finalPos = currCFrame.Position + newOffset
-        if castResult then
+        if castResult.Instance then
             finalPos = castResult.Position
             updateReplication = true
+            local surfaceNormal = castResult.Normal
             -- EVENT MOMENT????????
 
             if (bounces < projectileC.maxBounces and randUtil.getChance(projectileC.bounceChance))
             or (bounces < projectileC.minBounces) then
-                local surfaceNormal = castResult.Normal
 
                 -- reflect like a mirror, but roughen up surfaceNormal
                 local normalCFrame = CFrame.new(finalPos, finalPos + surfaceNormal)
@@ -166,6 +173,15 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
                 local theta = randUtil.getNum() * math.pi * 2
                 local phi = maxAngleOffset * randUtil.getNum(-1,1)
                 surfaceNormal = (normalCFrame * CFrame.Angles(0, phi, theta)).LookVector
+                
+                table.insert(interactions, {
+                    hitPos = finalPos,
+                    hitNormal = surfaceNormal,
+                    hitInstance = castResult.Instance,
+                    hitVelocity = currVelocity,
+                    projectileMass = projectileC.mass,
+                    hitDied = false,
+                })
 
                 -- theta is any angle chosen to reflect in the direction towards
                 -- phi is the angle it should deviate from the normal
@@ -173,24 +189,36 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
                 currVelocity =
                     (currVelocity - (2 * (currVelocity:Dot(surfaceNormal) * surfaceNormal)))
                     * projectileC.elasticity
-                
                 -- nudge the finalPos outward in preparation for reflecting
                 finalPos = finalPos + (currVelocity * Constants.EPSILON)
-                table.insert(bounceEvents, {
-                    finalPos,
-                    surfaceNormal,
-                })
+                -- currVelocity = Vector3.new(0,500,0)
                 bounces = bounces + 1
             elseif currPenetration < projectileC.penetration then
                 -- attempt to penetrate
                 -- TODO
                 -- print("destroyed from penetrated")
                 destroyed = true
+                table.insert(interactions, {
+                    hitPos = finalPos,
+                    hitNormal = surfaceNormal,
+                    hitInstance = castResult.Instance,
+                    hitVelocity = currVelocity,
+                    projectileMass = projectileC.mass,
+                    hitDied = true,
+                })
                 -- local castResult = workspace:Raycast(currCFrame.Position, newOffset, params)
             else
                 -- can't penetrate, can't bounce
                 -- print("destroyed from interaction")
                 destroyed = true
+                table.insert(interactions, {
+                    hitPos = finalPos,
+                    hitNormal = surfaceNormal,
+                    hitInstance = castResult.Instance,
+                    hitVelocity = currVelocity,
+                    projectileMass = projectileC.mass,
+                    hitDied = true,
+                })
             end
         end
 
@@ -201,6 +229,7 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
         distanceToTravel = distanceToTravel - actualDistanceTraveled
 
         currCFrame = CFrame.new(finalPos, finalPos + currVelocity)
+        currVelocity = currVelocity + (gravity * timeDelta)
 
         iters = iters + 1
     end
@@ -216,18 +245,20 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
     return {
         updateReplication = updateReplication,
         destroyed = destroyed,
-        bounceEvents = bounceEvents,
+        interactions = interactions,
     }
 end
 
 local bulletStores = {}
 local function cleanupStorage(id)
     if bulletStores[id] then
+        bulletStores[id].destroyed = true
         local storage = bulletStores[id]
         storage.Beam:Destroy()
+
         if storage.Trail then
             task.delay(storage.Trail.Lifetime, function()
-                storage.Trail:Destroy()
+                -- storage.Trail:Destroy()
                 for i,v in pairs(storage) do
                     if typeof(v) == "Instance" then
                         v:Destroy()
@@ -237,7 +268,7 @@ local function cleanupStorage(id)
         end
         bulletStores[id] = nil
     -- else
-        -- error("Tried to cleanup storage for non-existent bullet ".. id)
+        -- warn("Tried to cleanup storage for non-existent bullet ".. id)
     end
 end
 local function getBulletStorage(id)
@@ -249,6 +280,11 @@ end
 
 local fxAtt = Instance.new("Attachment")
 fxAtt.Parent = workspace.Terrain
+
+function projectileUtil.applyImpulseFromProjectile(instance, projectileVelocity, projectileMass)
+    projectileMass = projectileMass or 0
+    instance:ApplyImpulse(projectileVelocity * projectileMass)
+end
 
 function projectileUtil.bounceFX(pos, normal)
     normal = normal or Vector3.new(0,1,0)
@@ -267,9 +303,11 @@ function projectileUtil.unrenderProjectile(projectileId)
     cleanupStorage(projectileId)
 end
 
-function projectileUtil.renderProjectile(id, projectileC)
+function projectileUtil.renderProjectile(id, projectileC, noBeam)
     -- local projectileC = world:get(id, Components.Projectile)
     local storage = getBulletStorage(id)
+    if storage.destroyed then return end
+
     if not storage.init then
         storage.B0 = Instance.new("Attachment")
         storage.B1 = Instance.new("Attachment")
@@ -278,7 +316,6 @@ function projectileUtil.renderProjectile(id, projectileC)
         storage.B0.Parent = workspace.Terrain
         storage.B1.Parent = workspace.Terrain
         storage.Beam = projectileC.beamObj:Clone()
-        -- print(storage)
         storage.Beam.Parent = storage.B0
         storage.Beam.Attachment0 = storage.B0
         storage.Beam.Attachment1 = storage.B1
@@ -308,6 +345,12 @@ function projectileUtil.renderProjectile(id, projectileC)
         local ortho = projectileC.cframe.RightVector
         storage.T0.WorldPosition = (ortho.Unit * projectileC.trailWidth) + projectileC.cframe.Position
         storage.T1.WorldPosition = (ortho.Unit * -projectileC.trailWidth) + projectileC.cframe.Position
+    end
+    
+    if noBeam then
+        storage.Beam.Enabled = false
+    else
+        storage.Beam.Enabled = true
     end
 end
 

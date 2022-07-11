@@ -8,9 +8,21 @@ RoundInfos.Catalog = {
             maxBounces = 1,
             beamObj = Assets.Rounds.Default,
             trailObj = Assets.Rounds.DefaultTrail,
+            mass = 0.05,
         },
         Round = {
             baseDamage = 20, -- default to 20, damage applied to humanoids
+        }
+    },
+    Heavy = {
+        Projectile = {
+            maxBounces = 1,
+            beamObj = Assets.Rounds.Default,
+            trailObj = Assets.Rounds.DefaultTrail,
+            mass = 0.5,
+        },
+        Round = {
+            baseDamage = 70, -- default to 20, damage applied to humanoids
         }
     },
     Bouncy = {
@@ -22,10 +34,10 @@ RoundInfos.Catalog = {
             trailObj = Assets.Rounds.BouncyTrail,
             trailWidth = 0.1,
             elasticity = 0.9,
+            mass = 0.1,
         },
         Round = {
             baseDamage = 10,
-            knockback = 20,
         }
     },
     Chaotic = {
@@ -37,10 +49,10 @@ RoundInfos.Catalog = {
             elasticity = 1.2,
             beamObj = Assets.Rounds.Chaotic,
             trailObj = Assets.Rounds.ChaoticTrail,
+            mass = 1,
         },
         Round = {
             baseDamage = 50,
-            knockback = 500,
         },
         Explosive = {
             radius = 20,

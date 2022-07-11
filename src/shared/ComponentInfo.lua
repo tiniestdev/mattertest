@@ -243,6 +243,7 @@ ComponentInfo.Catalog = {
 		bounces = {}, -- current bounces it used up
 		traveledDistance = {}, -- how far it has traveled in studs
 		penetratedDistance = {}, -- how far it has penetrated through solids so far
+		mass = {}, -- default to 0, affects force applied to hit parts
 
 		-- CONFIG
 		ignoreList = {},
@@ -272,7 +273,6 @@ ComponentInfo.Catalog = {
 		-- Velocity/motion properties should be handled realtime by Projectile components.
 		-- speed = {}, -- default to gun's bulletSpeed
 		baseDamage = {}, -- default to 20, damage applied to humanoids
-		knockback = {}, -- default to 0, force applied to hit parts
 		-- explosive = {}, -- default to false (can be modified via components)
 	},
 	Explosive = {

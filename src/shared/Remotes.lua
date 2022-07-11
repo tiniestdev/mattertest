@@ -30,7 +30,12 @@ local Definitions = {
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60 * 20, })
     }),
 
-    BounceFX = Net.Definitions.ServerToClientEvent({ }),
+    RenderProjectile = Net.Definitions.ServerToClientEvent({}),
+    ProjectileInteractions = Net.Definitions.ServerToClientEvent({ }),
+    ProposeProjectileInteractions = Net.Definitions.ClientToServerEvent({
+        -- if a client wants to go brr, they should limit it and send *batch* bullets
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60 * 120, })
+    }),
 
     -- REPLICATIONS
     ReplicateArchetype = Net.Definitions.ServerToClientEvent({ }),

@@ -114,6 +114,14 @@ end
 --     end
 -- end
 
+function matterUtil.SignalToEvent(event)
+    local newSignal = Instance.new("BindableEvent")
+    event:Connect(function(...)
+        newSignal:Fire(...)
+    end)
+    return newSignal
+end
+
 function matterUtil.NetSignalToEvent(signalName, remotes)
     local newSignal = Instance.new("BindableEvent")
     if RunService:IsServer() then

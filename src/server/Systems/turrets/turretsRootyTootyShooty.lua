@@ -16,7 +16,7 @@ return function(world)
             local spread = turretModel:GetAttribute("Spread")
             local firerate = turretModel:GetAttribute("FireRate")
             local speed = turretModel:GetAttribute("Speed")
-
+            if firerate <= 0 then continue end
             if Matter.useThrottle(1/firerate, id) then
                 local barrelEnd = turretModel.Barrel.BarrelEnd
                 local startCFrame = barrelEnd.WorldCFrame

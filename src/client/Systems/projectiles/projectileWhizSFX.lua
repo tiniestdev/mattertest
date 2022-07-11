@@ -16,6 +16,8 @@ local function state(id)
     return storage
 end
 
+local projectileStorage = {}
+
 local whizSounds = {
     "bulletwhiz1",
     "bulletwhiz2_invert",
@@ -24,9 +26,19 @@ local whizSounds = {
 }
 
 return function(world, _, ui)
+    for id, projectileCR in world:queryChanged(Components.Projectile) do
+        if not projectileCR.old then
+            projectileStorage[id] = {}
+        end
+        if not projectileCR.new then
+            projectileStorage[id] = nil
+        end
+    end
     for id, projectileC in world:query(Components.Projectile) do
         local currPosition = projectileC.cframe.Position
-        local projState = state(id)
+        -- local projState = state(id)
+        local projState = projectileStorage[id]
+
         if not projState.prevPosition then
             projState.prevPosition = currPosition
             projState.whizzed = false
@@ -49,8 +61,7 @@ return function(world, _, ui)
                 local velocity = projectileC.velocity
                 -- Use logarithms
                 local pitch = math.log(velocity.Magnitude) / 6
-                -- volume is inversely related
-                local volume = pitch^8
+                local volume = pitch / 2
                 -- print(pitch, volume)
                 soundUtil.PlaySoundAtPos(randUtil.chooseFrom(whizSounds), closestPointOnPath, {
                     PlaybackSpeed = math.max(0.5, pitch + randUtil.getNum(-0.1,0.1)),
