@@ -64,7 +64,6 @@ function playerUtil.makePlayerEntity(player, world)
         playerEntityId = world:spawn()
         MatterUtil.setEntityId(player, playerEntityId)
     end
-
     world:insert(
         playerEntityId,
         Components.Instance({

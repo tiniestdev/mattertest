@@ -17,4 +17,8 @@ function randUtil.chooseFrom(tab)
     return tab[RDM:NextInteger(1, #tab)]
 end
 
+function randUtil.color()
+    return Color3.new(randUtil.getNum(), randUtil.getNum(), randUtil.getNum())
+end
+
 return randUtil

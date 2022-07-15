@@ -11,11 +11,6 @@ local randUtil = require(ReplicatedStorage.Util.randUtil)
 local soundUtil = require(ReplicatedStorage.Util.soundUtil)
 local drawUtil = require(ReplicatedStorage.Util.drawUtil)
 
-local function state(id)
-    local storage = Matter.useHookState(id)
-    return storage
-end
-
 local projectileStorage = {}
 
 local whizSounds = {

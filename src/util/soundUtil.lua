@@ -23,6 +23,61 @@ for _, sound in ipairs(Sounds:GetChildren()) do
 end
 soundUtil.DefaultGroup = Instance.new("SoundGroup")
 
+soundUtil.soundCategories = {
+    Dirt = {
+        "bulletHitDirt",
+        "bulletHitDirt2",
+        "bulletHitDirt3",
+    },
+    Ground = {
+        "bulletHitGround",
+        "bulletHitGround2",
+        "bulletHitGround3",
+    },
+    Metal = {
+        "bulletHitMetal",
+        "bulletHitMetal2",
+        "bulletHitMetal3",
+    },
+    Flesh = {
+        "bulletHitFlesh",
+        "bulletHitFlesh2",
+    },
+    Hit = {
+        "bodyHit",
+        "bodyHit2",
+        "bodyHit3",
+        "bodyHit4",
+    },
+    HeavyHit = {
+        "heavyHit",
+        "heavyHit1",
+        "heavyHit2",
+        "heavyHit3",
+        "heavyHit4",
+        "heavyHit5",
+    },
+    Death = {
+        "death",
+        "death2",
+        "death3",
+    },
+}
+
+soundUtil.materialMap = {
+    [Enum.Material.Sand] = soundUtil.soundCategories["Dirt"],
+    [Enum.Material.Grass] = soundUtil.soundCategories["Dirt"],
+    [Enum.Material.Snow] = soundUtil.soundCategories["Dirt"],
+
+    [Enum.Material.Plastic] = soundUtil.soundCategories["Ground"],
+    [Enum.Material.Concrete] = soundUtil.soundCategories["Ground"],
+    [Enum.Material.Marble] = soundUtil.soundCategories["Ground"],
+
+    [Enum.Material.Metal] = soundUtil.soundCategories["Metal"],
+    [Enum.Material.CorrodedMetal] = soundUtil.soundCategories["Metal"],
+    [Enum.Material.DiamondPlate] = soundUtil.soundCategories["Metal"],
+}
+
 -- used to get a new sound from an existing sound object or a name to look up
 -- also applies whatever's in the config table (these are multipliers, not absolute numbers)
 -- also this sound automatically cleans itself up if it's not looped
@@ -88,6 +143,21 @@ function soundUtil.PlaySoundAtPos(identifier, position, config)
 
 	newSound.Parent = soundAttachment
 	newSound:Play()
+	
+	local changeListener
+	changeListener = newSound.Changed:Connect(function()
+		task.delay(newSound.TimeLength, function()
+			soundAttachment:Destroy()
+			newSound:Destroy()
+		end)
+		changeListener:Disconnect()
+	end)
+	task.delay(5, function()
+		if soundAttachment.Parent then
+			soundAttachment:Destroy()
+			newSound:Destroy()
+		end
+	end)
 end
 
 function soundUtil.PlaySoundInObject(identifier, object, config)

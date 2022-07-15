@@ -11,10 +11,11 @@ local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 
 return function(world)
     for id, equipperCR in world:queryChanged(Components.Equipper) do
+        if not world:get(id, Components.Ours) then continue end
         if equipperCR.new then
-            if not world:get(id, Components.Ours) then continue end
+            if equipperCR.old and equipperCR.new.equippableId == equipperCR.old.equippableId then continue end
             Intercom.GetFusionValue("EquippedId", equipperCR.new.equippableId):set(equipperCR.new.equippableId)
-            -- print("Set fusion value EquippedId to ", equipperCR.new.equippableId)
+            -- print("Set fusion value EquippedId to ", equipperCR)
         end
     end
 end

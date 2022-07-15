@@ -5,23 +5,28 @@ local Components = require(ReplicatedStorage.components)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local Llama = require(ReplicatedStorage.Packages.llama)
 
-local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
-local TeamUtil = require(ReplicatedStorage.Util.teamUtil)
-local PlayerUtil = require(ReplicatedStorage.Util.playerUtil)
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local teamUtil = require(ReplicatedStorage.Util.teamUtil)
+local playerUtil = require(ReplicatedStorage.Util.playerUtil)
 local storageUtil = require(ReplicatedStorage.Util.storageUtil)
 local uiUtil = require(ReplicatedStorage.Util.uiUtil)
 
 return function(world)
 
     for entityId, storageCR in world:queryChanged(Components.Storage) do
+        if not matterUtil.isChangeRecordDiff(storageCR) then continue end
         if not storageCR.new then continue end
         if not world:get(entityId, Components.Ours) then continue end
+        -- print("firing cause storage entityId", entityId)
+        -- print(storageCR)
         uiUtil.fireUpdateToolbarSignal(world)
     end
 
     for entityId, storableCR in world:queryChanged(Components.Storable) do
+        if not matterUtil.isChangeRecordDiff(storableCR) then continue end
         if not storableCR.new then continue end
         if not world:get(entityId, Components.InToolbar) then continue end
+        -- print("firing cause storable entityId", entityId)
         uiUtil.fireUpdateToolbarSignal(world)
     end
 

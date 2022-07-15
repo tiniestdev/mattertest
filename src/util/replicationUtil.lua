@@ -159,6 +159,8 @@ function replicationUtil.deserializeArchetype(archetypeName, payload, world)
         print(payload)
     end
 
+    print("Deserializing archetype", archetypeName, "with payload", payload)
+
     local foundMethod = serializers.SerFunctions[archetypeName] and serializers.SerFunctions[archetypeName].deserialize
     if foundMethod then
         return foundMethod(payload, world, replicationUtil)
@@ -380,6 +382,14 @@ function replicationUtil.replicateServerEntityArchetypeToAll(entityId, archetype
     for i, player in ipairs(Players:GetPlayers()) do
         replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world)
     end
+end
+
+function replicationUtil.replicateChangeRecords(id, changeRecords, world)
+
+end
+
+function replicationUtil.replicateChangeRecordsTo(player, id, changeRecords, world)
+
 end
 
 function replicationUtil.replicateOwnPlayer(player, playerEntityId, world)

@@ -6,6 +6,7 @@ local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 local Value = Fusion.Value
 
+local randUtil = require(ReplicatedStorage.Util.randUtil)
 local Intercom = require(ReplicatedStorage.Intercom)
 
 return function(props)
@@ -33,11 +34,16 @@ return function(props)
                 return Color3.fromRGB(224, 244, 255)
             else
                 return Color3.fromRGB(56, 56, 56)
+                -- return randUtil.color()
             end
         end),
         Size = UDim2.new(1, 0, 1, 0),
         SizeConstraint = Enum.SizeConstraint.RelativeYY,
-        [Fusion.OnEvent "MouseButton1Click"] = function()
+        -- [Fusion.OnEvent("InputBegan")] = function(input)
+            -- print("input state:", input)
+        -- end,
+        [Fusion.OnEvent("MouseButton1Click")] = function()
+            -- print("CLICKED")
             -- print("Gonna equip ",props.storableId)
             Intercom.Get("EquipEquippable"):Fire(props.storableId)
         end,

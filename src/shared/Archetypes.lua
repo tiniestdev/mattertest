@@ -1,3 +1,5 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ComponentInfo = require(ReplicatedStorage.ComponentInfo)
 local Archetypes = {}
 
 Archetypes.Catalog = {
@@ -39,5 +41,11 @@ Archetypes.Catalog = {
         "Round",
     }
 }
+
+for componentName, v in ipairs(ComponentInfo.Catalog) do
+    Archetypes.Catalog[componentName] = {
+        componentName,
+    }
+end
 
 return Archetypes

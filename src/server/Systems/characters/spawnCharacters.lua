@@ -52,9 +52,6 @@ return function(world)
         grabberAtt.Parent = character:WaitForChild("Head")
 
         local charEntityId = world:spawn(
-            Components.ReplicateToClient({
-                archetypes = {"CharacterArchetype"}
-            }),
             Components.Instance({
                 instance = character,
             }),
@@ -100,13 +97,26 @@ return function(world)
             }),
             Components.Aimer({
                 -- set nothing, player will constantly update
-                aimerInstance = head,
+                -- aimerInstance = head,
+                -- do not use the head itself, use humanoidrootpart instead
+                -- we'll animate the head
+                -- also we'll need to apply this every frame
+                -- aimerCFrame = hrp.CFrame:toWorldSpace(CFrame.new(0, 1.5, 0)),
+                aimerInstance = hrp,
             })
         )
+
+        task.delay(5, function()
+            print("ADDING CHAR ARCHETYPE")
+            world:insert(charEntityId, Components.ReplicateToClient({
+                archetypes = {"CharacterArchetype"}
+            }))
+        end)
 
         world:insert(playerEntityId, playerC:patch({
             characterId = charEntityId,
         }))
+
         print("Player ID " .. playerEntityId .. " has character ID " .. charEntityId)
         matterUtil.setEntityId(character, charEntityId)
     end

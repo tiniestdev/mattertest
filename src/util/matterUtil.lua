@@ -241,15 +241,78 @@ end
 
 function matterUtil.isArchetype(entityId, archetypeName, world)
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+    if archetypeName == "GunTool" then
+        print("GUNTOOL CHECK ARCHETYPE", entityId, archetypeName)
+        print(componentSet)
+    end
     for componentName, _ in pairs(componentSet) do
-        if not world:contains(entityId) then
-            return false
-        end
-        if not world:get(entityId, Components[componentName]) then
-            return false
+        if archetypeName == "GunTool" then
+            if not world:contains(entityId) then
+                print("GUNTOOL REJECT CASE 1")
+                return false
+            end
+            if not world:get(entityId, Components[componentName]) then
+                print("GUNTOOL REJECT CASE 2")
+                return false
+            end
+        else
+            if not world:contains(entityId) then
+                return false
+            end
+            if not world:get(entityId, Components[componentName]) then
+                return false
+            end
         end
     end
     return true
+end
+
+function matterUtil.isChangeRecordDiff(CR)
+    local newRecord = CR.new
+    local oldRecord = CR.old
+
+    local function isEqual(v1, v2)
+        if typeof(v1) == "table" then
+            if typeof(v2) ~= "table" then
+                return false
+            end
+            for i, v in pairs(v1) do
+                -- if not isEqual(v, v2[i]) then
+                -- print("v1:", i,v, "v2:", i, v2[i])
+                if not (v == v2[i]) then
+                    return false
+                end
+            end
+            for i, v in pairs(v2) do
+                -- if not isEqual(v, v1[i]) then
+                -- print("v2:", i,v, "v1:", i, v1[i])
+                if not (v == v1[i]) then
+                    return false
+                end
+            end
+            return true
+        else
+            return v1 == v2
+        end
+    end
+
+    if (newRecord and not oldRecord) or (not newRecord and oldRecord) then
+        return true
+    end
+
+    if newRecord and oldRecord then
+        for i, v in pairs(newRecord) do
+            if not isEqual(v, oldRecord[i]) then
+                return true
+            end
+        end
+        for i, v in pairs(oldRecord) do
+            if not isEqual(v, newRecord[i]) then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)
@@ -258,28 +321,109 @@ function matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)
     local changedEntities = {}
 
     -- cycle through every single component that might have changed
+    if archetypeName == "GunTool" then
+        print("GT: Attempt to get changed entitites")
+    end
+
     local changed = false
     for _, currentComponentName in ipairs(componentList) do
+        if currentComponentName == "GunTool" then
+            print("GT: Current component:", currentComponentName)
+        end
         for id, CR in world:queryChanged(Components[currentComponentName]) do
-            if not matterUtil.isArchetype(id, archetypeName, world) then continue end
-            if not changedEntities[id] then changedEntities[id] = {} end
-            changedEntities[id][currentComponentName] = CR
-            changed = true
+            if currentComponentName == "GunTool" then
+                print("GT: Current component ITER:", currentComponentName)
+            end
+            if not CR.old then
+                if archetypeName == "GunTool" then
+                    print("GT: NEW ENTITY: " .. tostring(id))
+                end
+            end
+            if archetypeName == "GunTool" then
+                print("GETCHANGED GUNTOOLS ITER")
+                if not matterUtil.isChangeRecordDiff(CR) then print("GUNTOOL FLAGGED") end
+                if not matterUtil.isArchetype(id, archetypeName, world) then print("GUNTOOL FLAGGED 2") end
+                if not changedEntities[id] then changedEntities[id] = {} end
+                changedEntities[id][currentComponentName] = CR
+                changed = true
+                print("GUNTOOL ADDED")
+            else
+                if not matterUtil.isChangeRecordDiff(CR) then continue end
+                if not matterUtil.isArchetype(id, archetypeName, world) then continue end
+                if not changedEntities[id] then changedEntities[id] = {} end
+                changedEntities[id][currentComponentName] = CR
+                changed = true
+            end
+        end
+        if currentComponentName == "GunTool" then
+            print("GT: Work done for currentcomponent:", currentComponentName)
         end
     end
 
-    -- if changed then
-    --     print("changedentityies: ", changedEntities)
-    -- end
+    if archetypeName == "GunTool" then
+        if changed then
+            print("GT: Changed: ", changedEntities)
+        else
+            print("GT: No changed entities detected.")
+        end
+    end
     return changedEntities
 end
 
-function matterUtil.replicateChangedArchetypes(archetypeName, world)
+function matterUtil.replicateEntitiesAndChangeRecords(changedEntitiesToChangeRecords, world)
     local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 
     local resetFlagsForIds = {}
 
-    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)) do
+    for id, changeRecords in pairs(changedEntitiesToChangeRecords) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
+        if rtcC.disabled then
+            if rtcC.replicateFlag then
+                --proceed normally
+                table.insert(resetFlagsForIds, id)
+            else
+                continue
+            end
+        end
+        local players = playerUtil.getSetOfPlayers()
+        if rtcC.whitelist then
+            players = rtcC.whitelist
+        end
+        if rtcC.blacklist then
+            for player, v in pairs(rtcC.blacklist) do
+                players[player] = nil
+            end
+        end
+
+        if not (rtcC.whitelist or rtcC.blacklist) then
+            replicationUtil.replicateChangeRecords(id, changeRecords, world)
+            -- replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
+            -- print("Replicating to all:", id, archetypeName)
+        else
+            for player, v in pairs(players) do
+                replicationUtil.replicateChangeRecordsTo(player, id, changeRecords, world)
+                -- replicationUtil.replicateServerEntityArchetypeTo(player, id, archetypeName, world)
+                -- print("Replicating to ", player)
+            end
+        end
+    end
+
+    for _, id in ipairs(resetFlagsForIds) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
+        world:insert(id, rtcC:patch({
+            replicateFlag = false,
+        }))
+    end
+end
+
+function matterUtil.replicateEntitiesWithChangedArchetypes(entityToChangedArchetypes, world)
+    local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+
+    local resetFlagsForIds = {}
+
+    for id, archetypeList in pairs(entityToChangedArchetypes) do
         local rtcC = world:get(id, Components.ReplicateToClient)
         if not rtcC then continue end
         if rtcC.disabled then
@@ -301,6 +445,65 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
             end
         end
         if not (rtcC.whitelist or rtcC.blacklist) then
+            for _, archetypeName in ipairs(archetypeList) do
+                replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
+                -- print("Replicating to all:", id, archetypeName)
+            end
+        else
+            for player, v in pairs(players) do
+                for _, archetypeName in ipairs(archetypeList) do
+                    replicationUtil.replicateServerEntityArchetypeTo(player, id, archetypeName, world)
+                    -- print("Replicating to ", player)
+                end
+            end
+        end
+    end
+
+    for _, id in ipairs(resetFlagsForIds) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
+        world:insert(id, rtcC:patch({
+            replicateFlag = false,
+        }))
+    end
+end
+
+function matterUtil.replicateChangedArchetypes(archetypeName, world)
+    local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+
+    local resetFlagsForIds = {}
+
+    if archetypeName == "GunTool" then
+        print("GT: replicateChangedArchetypes for GunTool")
+    end
+    for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)) do
+        if archetypeName == "GunTool" then
+            print("GGGGGGGGGGGGGGGG")
+        end
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
+        if rtcC.disabled then
+            if rtcC.replicateFlag then
+                --proceed normally
+                table.insert(resetFlagsForIds, id)
+            else
+                continue
+            end
+        end
+        
+        local players = playerUtil.getSetOfPlayers()
+        if rtcC.whitelist then
+            players = rtcC.whitelist
+        end
+        if rtcC.blacklist then
+            for player, v in pairs(rtcC.blacklist) do
+                players[player] = nil
+            end
+        end
+        if not (rtcC.whitelist or rtcC.blacklist) then
+            if archetypeName == "GunTool" then
+                print("GG1")
+            end
             replicationUtil.replicateServerEntityArchetypeToAll(id, archetypeName, world)
             -- print("Replicating to all:", id, archetypeName)
         else
@@ -309,6 +512,9 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
                 -- print("Replicating to ", player)
             end
         end
+    end
+    if archetypeName == "GunTool" then
+        print("GT: done")
     end
 
     for _, id in ipairs(resetFlagsForIds) do
@@ -323,16 +529,32 @@ end
 function matterUtil.getComponentSetFromArchetype(archetypeName)
     local archetypesToCheck = Archetypes.Catalog[archetypeName]
     if archetypesToCheck then
-        -- print("Archetypes to check:", archetypesToCheck)
         local componentNameSet = {}
         for _, subArchetypeName in ipairs(archetypesToCheck) do
             componentNameSet = Llama.Set.union(componentNameSet, matterUtil.getComponentSetFromArchetype(subArchetypeName))
         end
         return componentNameSet
     else
-        -- print("Archetypes to check:", archetypeName)
-        return Llama.Set.fromList({ archetypeName })
+        return { [archetypeName] = true }
     end
+end
+
+local cache = {}
+function matterUtil.getArchetypesContainingComponentOutOf(componentName, validArchetypesList)
+    if cache[componentName] then
+        return cache[componentName]
+    end
+    local archetypes = {}
+    -- for archetypeName, info in pairs(Archetypes.Catalog) do
+    for _, archetypeName in ipairs(validArchetypesList) do
+        local compSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+        if compSet[componentName] then
+            table.insert(archetypes, archetypeName)
+            continue
+        end
+    end
+    cache[componentName] = archetypes
+    return archetypes
 end
 
 function matterUtil.getReferenceSetPropertiesOfComponent(componentName, componentData)

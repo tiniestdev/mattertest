@@ -120,7 +120,7 @@ ragdollUtil.Ragdoll = function(char, skeleton)
         animator:ApplyJointVelocities(ragdollUtil.getMotors(char))
     end
 
-    physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.RAGDOLL)
+    -- physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.RAGDOLL)
     physicsUtil.DeepSetCanCollide(skeleton, true)
     -- physicsUtil.DeepSetCanCollide(char, false)
 
@@ -169,7 +169,7 @@ ragdollUtil.Unragdoll = function(char, skeleton)
     local hum = char:FindFirstChild("Humanoid")
     if hum then ragdollUtil.EnableHumanoid(hum) end
 
-    physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.CHAR)
+    -- physicsUtil.DeepSetCollisionGroup(char, Constants.CollisionNames.CHAR)
     physicsUtil.DeepSetCanCollide(skeleton, false)
     -- physicsUtil.DeepSetCanCollide(char, true)
 

@@ -18,7 +18,7 @@ Teams.Teams = {
         autoAssignable = true,
     },
     Officials = {
-        allianceName = "Neutral",
+        allianceName = "Officials",
         color = Color3.new(1, 1, 1),
     },
 }

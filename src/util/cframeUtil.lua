@@ -23,6 +23,15 @@ OCFrame.getVelocityFromPoses(cf1, cf2, elapsed)
 
 local OCFrame = {}
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local randUtil = require(ReplicatedStorage.Util.randUtil)
+
+local zeroPos = Vector3.new(0,0,0)
+
+function OCFrame.reflectOffNormal(vec, normal)
+	return vec - (2 * (vec:Dot(normal) * normal))
+end
+
 function OCFrame.getRotatedCFAroundPoint(targetCF, pivotCF, axis, r)
 	local offset = pivotCF:ToObjectSpace(targetCF)
 	local rotatedPivotCF = pivotCF * CFrame.fromAxisAngle(axis, r)

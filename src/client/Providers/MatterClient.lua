@@ -145,7 +145,9 @@ function MatterClient:AxisStarted()
 
     Intercom.Get("EquipEquippable"):Connect(function(equippableId)
         -- cooldown
+        print("!")
         if not timeUtil.getDebounce("equipDebounce", 0.4) then return end
+        print("Equipping equippable", equippableId)
 
         -- make sure we're actually an equipper
         local myCharacterId = localUtil.getMyCharacterEntityId(world)
@@ -164,8 +166,9 @@ function MatterClient:AxisStarted()
                 equippableId = Matter.None,
             }))
             Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(nil):andThen(function(response)
+                print("RequestEquipEquippable response", response)
                 if response == true then
-                    -- print("Equip succeeded")
+                    print("Equip succeeded")
                 else
                     warn("!! Unequip failed !!")
                     warn("Tried to unequip " .. tostring(equippableId) .. " but server said " .. tostring(response))
@@ -179,9 +182,9 @@ function MatterClient:AxisStarted()
                 equippableId = equippableId,
             }))
             Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(replicatedC.serverId):andThen(function(response)
-                -- print("response: ", response)
+                print("response: ", response)
                 if response == true then
-                    -- print("Equip succeeded")
+                    print("Equip succeeded")
                 else
                     warn("!! Equip failed !!")
                     warn("Tried to equip " .. tostring(equippableId) .. " but server said " .. tostring(response))

@@ -8,6 +8,7 @@ local RoundInfos = require(ReplicatedStorage.RoundInfos)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 local randUtil = require(ReplicatedStorage.Util.randUtil)
 local vecUtil = require(ReplicatedStorage.Util.vecUtil)
+local cframeUtil = require(ReplicatedStorage.Util.cframeUtil)
 
 local projectileUtil = {}
 
@@ -186,9 +187,7 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
                 -- theta is any angle chosen to reflect in the direction towards
                 -- phi is the angle it should deviate from the normal
                 -- rotate the normal by theta
-                currVelocity =
-                    (currVelocity - (2 * (currVelocity:Dot(surfaceNormal) * surfaceNormal)))
-                    * projectileC.elasticity
+                currVelocity = cframeUtil.reflectOffNormal(currVelocity, surfaceNormal) * projectileC.elasticity
                 -- nudge the finalPos outward in preparation for reflecting
                 finalPos = finalPos + (currVelocity * Constants.EPSILON)
                 -- currVelocity = Vector3.new(0,500,0)
@@ -280,23 +279,111 @@ end
 
 local fxAtt = Instance.new("Attachment")
 fxAtt.Parent = workspace.Terrain
+local cachedFx = {}
 
 function projectileUtil.applyImpulseFromProjectile(instance, projectileVelocity, projectileMass)
     projectileMass = projectileMass or 0
     instance:ApplyImpulse(projectileVelocity * projectileMass)
 end
 
-function projectileUtil.bounceFX(pos, normal)
-    normal = normal or Vector3.new(0,1,0)
-    fxAtt.WorldCFrame = CFrame.new(pos, pos + normal)
-    local bounceEmitter = fxAtt:FindFirstChild("BounceParticle")
-    if not bounceEmitter then
-        local fx = Assets.Particles.BounceParticle:Clone()
+function projectileUtil.getParticleEffectOnFXAtt(name)
+    -- local particleEffect = fxAtt:FindFirstChild(name)
+    local particleEffect = cachedFx[name]
+    if not particleEffect then
+        local fx = Assets.Particles[name]:Clone()
         fx.Parent = fxAtt
-        bounceEmitter = fx
-        bounceEmitter.Enabled = false
+        particleEffect = fx
+        particleEffect.Enabled = false
+        cachedFx[name] = particleEffect
     end
-    bounceEmitter:Emit(3)
+    return particleEffect
+end
+function projectileUtil.getNewParticleEffectOnFXAtt(name, overrideFxAtt)
+    -- get the
+    local fx = Assets.Particles[name]:Clone()
+    fx.Parent = overrideFxAtt or fxAtt
+    fx.Enabled = false
+    return fx
+end
+function projectileUtil.getNewFXAtt()
+    local newFX = Instance.new("Attachment")
+    newFX.Parent = workspace.Terrain
+    return newFX
+end
+
+function projectileUtil.emitOnPosNormal(identifier, pos, normal, emitAmount, overrideFxAtt)
+    normal = normal or Vector3.new(0,1,0)
+    local att = overrideFxAtt or fxAtt
+    att.WorldCFrame = CFrame.new(pos, pos + normal)
+    if typeof(identifier) == "string" then
+        projectileUtil.getParticleEffectOnFXAtt(identifier):Emit(emitAmount)
+    elseif typeof(identifier) == "Instance" then
+        identifier:Emit(emitAmount)
+    else
+        warn("Idk")
+    end
+end
+
+function projectileUtil.deathFX(pos)
+    projectileUtil.emitOnPosNormal("Death", pos, nil, 10)
+end
+
+function projectileUtil.bulletHitFX(interaction, colorOverride)
+    local newFxAtt = projectileUtil.getNewFXAtt()
+    local puffFx = projectileUtil.getNewParticleEffectOnFXAtt("BulletHitPuff", newFxAtt)
+    local shootFx = projectileUtil.getNewParticleEffectOnFXAtt("BulletHitShootcloud", newFxAtt)
+    local hitColor = colorOverride or interaction.hitInstance.Color
+    local intensity = math.max(0.2, interaction.hitVelocity.Magnitude / 1000 * interaction.projectileMass / 0.5)
+
+
+    puffFx.Lifetime = NumberRange.new(
+        0.05 + intensity*0.1,
+        0.2 + intensity*0.2
+    )
+    puffFx.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, math.max(0, 0.5 - intensity*1), 0.2),
+        NumberSequenceKeypoint.new(0.5,0.5,0.3),
+        NumberSequenceKeypoint.new(1,1,0),
+    })
+    puffFx.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0,0,0),
+        NumberSequenceKeypoint.new(1,2 + intensity*1,0.5),
+    })
+    puffFx.Color = ColorSequence.new(hitColor)
+
+
+    shootFx.Lifetime = NumberRange.new(
+        0.2 + intensity*1,
+        0.5 + intensity*2
+    )
+    shootFx.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, math.max(0, 0.8 - intensity*0.2), 0.2),
+        NumberSequenceKeypoint.new(0.4,1,0.3),
+        NumberSequenceKeypoint.new(1,2,0),
+    })
+    shootFx.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0,0,0),
+        NumberSequenceKeypoint.new(0.05,1 + intensity*1,0.2),
+        NumberSequenceKeypoint.new(1,3 + intensity*1,0.5),
+    })
+    shootFx.Speed = NumberRange.new(
+        50,
+        100 + intensity*100
+    )
+    shootFx.Color = ColorSequence.new(hitColor)
+
+
+    projectileUtil.emitOnPosNormal(puffFx, interaction.hitPos, interaction.hitNormal, 3, newFxAtt)
+    projectileUtil.emitOnPosNormal(shootFx, interaction.hitPos, interaction.hitNormal, 4, newFxAtt)
+    projectileUtil.emitOnPosNormal(shootFx, interaction.hitPos, cframeUtil.reflectOffNormal(interaction.hitVelocity, interaction.hitNormal), 3, newFxAtt)
+
+    task.delay(puffFx.Lifetime.Max, function() puffFx:Destroy() end)
+    task.delay(shootFx.Lifetime.Max, function() shootFx:Destroy() end)
+    task.delay(math.max(puffFx.Lifetime.Max, shootFx.Lifetime.Max), function() newFxAtt:Destroy() end)
+end
+
+function projectileUtil.bounceFX(interaction)
+    projectileUtil.emitOnPosNormal("BounceParticle", interaction.hitPos, interaction.hitNormal, 3)
 end
 
 function projectileUtil.unrenderProjectile(projectileId)

@@ -125,6 +125,9 @@ ComponentInfo.Catalog = {
             referenceToArchetype = "Team";
         },
 	},
+	PlayerOwned = {
+		ownerId = {}; -- entity id of player entity that owns it
+	},
 
 	-- Actual entities of teams and groups
 	Team = {

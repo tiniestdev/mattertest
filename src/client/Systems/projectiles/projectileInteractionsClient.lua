@@ -9,6 +9,7 @@ local projectileUtil = require(ReplicatedStorage.Util.projectileUtil)
 local soundUtil = require(ReplicatedStorage.Util.soundUtil)
 local randUtil = require(ReplicatedStorage.Util.randUtil)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
+local combatUtil = require(ReplicatedStorage.Util.combatUtil)
 
 local projintevent = matterUtil.NetSignalToEvent("ProjectileInteractions", Remotes)
 
@@ -16,41 +17,6 @@ local ricochetSounds = {
     "ricochet1",
     "ricochet2",
     "ricochet3",
-}
-
-local soundCategories = {
-    Dirt = {
-        "bulletHitDirt",
-        "bulletHitDirt2",
-        "bulletHitDirt3",
-    },
-    Ground = {
-        "bulletHitGround",
-        "bulletHitGround2",
-        "bulletHitGround3",
-    },
-    Metal = {
-        "bulletHitMetal",
-        "bulletHitMetal2",
-        "bulletHitMetal3",
-    },
-    Flesh = {
-        "bulletHitFlesh",
-        "bulletHitFlesh2",
-    },
-}
-local materialMap = {
-    [Enum.Material.Sand] = soundCategories["Dirt"],
-    [Enum.Material.Grass] = soundCategories["Dirt"],
-    [Enum.Material.Snow] = soundCategories["Dirt"],
-
-    [Enum.Material.Plastic] = soundCategories["Ground"],
-    [Enum.Material.Concrete] = soundCategories["Ground"],
-    [Enum.Material.Marble] = soundCategories["Ground"],
-
-    [Enum.Material.Metal] = soundCategories["Metal"],
-    [Enum.Material.CorrodedMetal] = soundCategories["Metal"],
-    [Enum.Material.DiamondPlate] = soundCategories["Metal"],
 }
 
 local lastKnownSpeeds = {}
@@ -76,33 +42,35 @@ return function(world)
 
             local volume = pitch * interaction.projectileMass
 
-            if hitDied then
+            if combatUtil.getHumanoidFromInstance(hitInstance) then
+                projectileUtil.bulletHitFX(interaction, Color3.new(0.407843, 0, 0))
+                soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.Flesh), hitPos, {
+                    PlaybackSpeed = math.max(0.5, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
+                    Volume = volume,
+                })
+            elseif hitDied then
                 -- Died, play hit sound
-                if hitInstance.Parent:FindFirstChild("Humanoid") then
-                    soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundCategories.Flesh), hitPos, {
-                        PlaybackSpeed = math.max(0.5, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
+                projectileUtil.bulletHitFX(interaction)
+                if soundUtil.materialMap[hitInstance.Material] then
+                    soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.materialMap[hitInstance.Material]), hitPos, {
+                        PlaybackSpeed = math.max(0.9, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
                         Volume = volume,
                     })
                 else
-                    if materialMap[hitInstance.Material] then
-                        soundUtil.PlaySoundAtPos(randUtil.chooseFrom(materialMap[hitInstance.Material]), hitPos, {
-                            PlaybackSpeed = math.max(0.9, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
-                            Volume = volume,
-                        })
-                    else
-                        soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundCategories.Ground), hitPos, {
-                            PlaybackSpeed = math.max(0.9, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
-                            Volume = volume,
-                        })
-                    end
+                    soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.Ground), hitPos, {
+                        PlaybackSpeed = math.max(0.9, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
+                        Volume = volume,
+                    })
                 end
             else
                 -- BOUNCED
-                projectileUtil.bounceFX(hitPos, hitNormal)
+                projectileUtil.bounceFX(interaction)
                 soundUtil.PlaySoundAtPos(randUtil.chooseFrom(ricochetSounds), hitPos, {
-                    PlaybackSpeed = math.max(0.5, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
+                    PlaybackSpeed = math.max(0.7, pitch + randUtil.getNum(-pitchNoise, pitchNoise)),
                     Volume = volume * 2,
+                    -- Volume = 20,
                 })
+                -- print("BOUNCE SOUND???")
             end
 
             if hitInstance then

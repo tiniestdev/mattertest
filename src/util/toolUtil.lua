@@ -26,6 +26,7 @@ function toolUtil.makePresetTool(toolName, props, world)
             -- Any archetypes not covered by being a tool, like GunTool or MeleeTool?
             if not toolbarToolComponentSet[componentName] then
                 table.insert(archetypes, componentName)
+                print("insert", componentName, entityId, archetypes)
             end
 
             world:insert(entityId,
@@ -43,6 +44,8 @@ function toolUtil.makePresetTool(toolName, props, world)
             ["archetypes"] = archetypes,
         })
     )
+
+    print(entityId, archetypes)
 
     return entityId
 end
@@ -97,6 +100,38 @@ function toolUtil.defaultToolEquip(toolId, charId, world)
 
     physicsUtil.DeepSetCanCollide(corporeal, false)
     corporeal.Parent = char
+end
+
+function toolUtil.defaultGunEquip(toolId, charId, world)
+    toolUtil.defaultToolEquip(toolId, charId, world)
+    local corporealC = world:get(toolId, Components.Corporeal)
+    if not corporealC then return end
+    local instanceC = world:get(charId, Components.Instance)
+    if not instanceC then return end
+    local char = instanceC.instance
+    if not char then return end
+    
+    local corporeal = corporealC.instance
+    local foundHandle = corporeal:FindFirstChild("Handle")
+    local foundBarrel = corporeal:FindFirstChild("Barrel")
+    assert(foundHandle)
+    assert(foundBarrel)
+
+    local foundRightArm = char:FindFirstChild("Right Arm")
+    if foundRightArm then
+
+    end
+    local foundLeftArm = char:FindFirstChild("Left Arm")
+    if foundLeftArm then
+
+    end
+
+
+    -- play gun holding animation?
+    -- move da handsu
+    -- we should aim the gun and position it to a mid-air position based on the head position,
+    -- then rotate the arms to grip positions
+    
 end
 
 function toolUtil.defaultToolUnequip(toolId, charId, world)

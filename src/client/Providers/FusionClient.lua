@@ -30,8 +30,8 @@ function FusionClient:AxisStarted()
         storableProps:set(uiUtil.getStorablePropsFromStorage(charStorageId, MatterClient.World))
     end)
 
-    local data = matterUtil.getEntityViewerData(MatterClient.World)
-    task.wait()
+    -- local data = matterUtil.getEntityViewerData(MatterClient.World)
+    -- task.wait()
     New "ScreenGui" {
         Name = "FusionClient",
         Parent = Players.LocalPlayer.PlayerGui,
