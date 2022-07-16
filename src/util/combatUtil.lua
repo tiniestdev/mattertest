@@ -59,6 +59,10 @@ function combatUtil.getHumanoidFromInstance(instance)
     if foundHum then return foundHum end
     if instance.Name == "Handle" then return instance.Parent.Parent:FindFirstChild("Humanoid") end
 end
+function combatUtil.getCharFromInstance(instance)
+    local hum = combatUtil.getHumanoidFromInstance(instance)
+    return hum and hum.Parent or nil
+end
 
 function combatUtil.getDamageFromRoundToInstance(roundId, hitInstance, world)
     local roundC = world:get(roundId, Components.Round)

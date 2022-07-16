@@ -146,4 +146,10 @@ function localUtil.castMouseWithParams(params)
     -- return raycastResult
 end
 
+function localUtil.getAimerC(world)
+    local aimerId = localUtil.waitForCharacterEntityId(world)
+    local aimerC = world:get(aimerId, Components.Aimer)
+    return aimerC
+end
+
 return localUtil

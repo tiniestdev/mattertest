@@ -34,6 +34,7 @@ return function(world)
                     -- "Default",
                     RoundInfos.Catalog[roundType] and roundType or "Default",
                     {turretModel},
+                    id,
                     world
                 )
             end

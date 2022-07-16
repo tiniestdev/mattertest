@@ -16,6 +16,7 @@
 ++  tableUtil.GetRepeatedValues(tab)
 ++  tableUtil.AppendUnique(target, source)
 ++ 	tableUtil.Append(target, source)
+++ 	tableUtil.ToString(tab, titleText)
 	tableUtil.Copy(Table tbl)
 	tableUtil.CopyShallow(Table tbl)
 	tableUtil.Sync(Table tbl, Table templateTbl)
@@ -573,6 +574,14 @@ local function Rotate(tab)
 	return tab
 end
 
+local function ToString(tab, titleText)
+	local str = string.format("%s:\n", tostring(titleText) or "table")
+	for i,v in pairs(tab) do
+		str = str .. string.format("%s: %s\n", tostring(i), tostring(v))
+	end
+	return str
+end
+
 tableUtil.Copy = CopyTable
 tableUtil.CopyShallow = CopyTableShallow
 tableUtil.Sync = Sync
@@ -599,5 +608,6 @@ tableUtil.HaveSameValues = HaveSameValues
 tableUtil.Flip = Flip
 tableUtil.FlipNumeric = FlipNumeric
 tableUtil.Rotate = Rotate
+tableUtil.ToString = ToString
 
 return tableUtil

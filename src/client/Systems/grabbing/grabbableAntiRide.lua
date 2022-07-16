@@ -39,9 +39,11 @@ return function(world)
 
         -- local touching = grabbableInstance:GetTouchingParts()
         if not grabbableInstance then
-            warn("wtf: no instance for grabbableid:", id)
+            -- this might be valid in case a server part stored in someone's private backpack is inaccessible to other clients
+            -- i guess we don't need to worry about this if it's a regular grabbable public part
             continue
         end
+
         local overlapParams = OverlapParams.new()
         overlapParams.MaxParts = 5;
         local overlapping = workspace:GetPartsInPart(grabbableInstance, overlapParams)

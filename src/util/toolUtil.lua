@@ -26,7 +26,7 @@ function toolUtil.makePresetTool(toolName, props, world)
             -- Any archetypes not covered by being a tool, like GunTool or MeleeTool?
             if not toolbarToolComponentSet[componentName] then
                 table.insert(archetypes, componentName)
-                print("insert", componentName, entityId, archetypes)
+                -- print("insert", componentName, entityId, archetypes)
             end
 
             world:insert(entityId,
@@ -44,8 +44,7 @@ function toolUtil.makePresetTool(toolName, props, world)
             ["archetypes"] = archetypes,
         })
     )
-
-    print(entityId, archetypes)
+    -- print(entityId, archetypes)
 
     return entityId
 end

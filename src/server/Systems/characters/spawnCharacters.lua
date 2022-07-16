@@ -52,6 +52,9 @@ return function(world)
         grabberAtt.Parent = character:WaitForChild("Head")
 
         local charEntityId = world:spawn(
+            Components.ReplicateToClient({
+                archetypes = {"CharacterArchetype"}
+            }),
             Components.Instance({
                 instance = character,
             }),
@@ -105,13 +108,6 @@ return function(world)
                 aimerInstance = hrp,
             })
         )
-
-        task.delay(5, function()
-            print("ADDING CHAR ARCHETYPE")
-            world:insert(charEntityId, Components.ReplicateToClient({
-                archetypes = {"CharacterArchetype"}
-            }))
-        end)
 
         world:insert(playerEntityId, playerC:patch({
             characterId = charEntityId,

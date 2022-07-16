@@ -39,6 +39,12 @@ return function(world, _, ui)
                 active = false,
                 dead = true,
             }))
+            local rtcC = world:get(id, Components.ReplicateToClient)
+            if rtcC then
+                world:insert(id, rtcC:patch({
+                    replicateFlag = true,
+                }))
+            end
             task.delay(1, function()
                 world:despawn(id)
             end)

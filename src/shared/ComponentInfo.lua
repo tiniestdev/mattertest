@@ -37,9 +37,9 @@ ComponentInfo.Catalog = {
 		-- will also be forced to maintain the same relationship with the entity
 		-- that it is locked to
 		-- should be removed if you wish to allow replication again
-
-		-- actually maybe instead of a component just have it be a field in a component
-		-- so it can be applied to individual components instead of affecting the entire entity and locking ALL its components
+		-- !!!
+		-- Can be overridden by setting the payload field OVERRIDELOCK to true
+		
 	ClientLocked = {
         CLIENTCOMPONENT = true;
 		clientLocked = {};
@@ -58,6 +58,16 @@ ComponentInfo.Catalog = {
 		serverId = {};
 		scope = {};
 		identifier = {};
+	},
+	-- Such a tag is used to identify an entity as being created
+	-- from a certain other entity, like bullets from a gun.
+	-- It's made by the client, and sent to the server so the server can
+	-- identify who's supposed to be responsible for the created entity
+	-- and assess the creatorId to authorize the creation serverside.
+	CreationTag = {
+		creatorId = {
+			isReference = true;
+		};
 	},
 
 	-- SERVER COMPONENTS
@@ -123,6 +133,7 @@ ComponentInfo.Catalog = {
 		teamId = {
             isReference = true;
             referenceToArchetype = "Team";
+			replicateNil = true;
         },
 	},
 	PlayerOwned = {
@@ -134,6 +145,7 @@ ComponentInfo.Catalog = {
 		allianceId = {
 			isReference = true;
 			referenceToArchetype = "Alliance";
+			replicateNil = true;
 		},
         playerIds = {
             isReferenceSet = true;
@@ -156,6 +168,7 @@ ComponentInfo.Catalog = {
 		characterId = {
             isReference = true;
             referenceToArchetype = "CharacterArchetype";
+			replicateNil = true;
         },
 	},
 	NetworkOwned = {
@@ -166,6 +179,7 @@ ComponentInfo.Catalog = {
 		playerId = {
             isReference = true;
             referenceToArchetype = "PlayerArchetype";
+			replicateNil = true;
         },
 	},
 	Skeleton = {
@@ -313,6 +327,7 @@ ComponentInfo.Catalog = {
 		equipperId = {
             isReference = true;
             referenceToArchetype = "Equipper";
+			replicateNil = true;
         }, -- is nil if not equipped
 		hotkey = {}, --CLIENT
 	},

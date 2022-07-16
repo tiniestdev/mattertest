@@ -55,6 +55,19 @@ function playerUtil.getLeavingCharactersObservable()
     })
 end
 
+function playerUtil.getFilteredPlayerSet(whiteset, blackset)
+    local players = playerUtil.getSetOfPlayers()
+    if whiteset then
+        players = whiteset
+    end
+    if blackset then
+        for player, v in pairs(blackset) do
+            players[player] = nil
+        end
+    end
+    return players
+end
+
 function playerUtil.makePlayerEntity(player, world)
     local Components = require(ReplicatedStorage.components)
     local MatterUtil = require(ReplicatedStorage.Util.matterUtil)

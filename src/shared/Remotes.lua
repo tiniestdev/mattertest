@@ -32,8 +32,11 @@ local Definitions = {
 
     RenderProjectile = Net.Definitions.ServerToClientEvent({}),
     ProjectileInteractions = Net.Definitions.ServerToClientEvent({ }),
-    ProposeProjectileInteractions = Net.Definitions.ClientToServerEvent({
+    ProposeProjectile = Net.Definitions.ClientToServerEvent({
         -- if a client wants to go brr, they should limit it and send *batch* bullets
+        Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60 * 120, })
+    }),
+    ProposeProjectileHit = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60 * 120, })
     }),
 

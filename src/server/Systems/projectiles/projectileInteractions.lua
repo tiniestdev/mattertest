@@ -34,7 +34,8 @@ return function(world)
             -- this whole damage thing has got to be improved on later
             -- considering doing it the runker 51 way but we'll see. i feel like
             -- there's a conflict between event-based handling and the *matter* way
-            local victimId = matterUtil.getEntityId(hitInstance) or matterUtil.getEntityId(hitInstance.Parent)
+            local detectedChar = combatUtil.getCharFromInstance(hitInstance)
+            local victimId = detectedChar and matterUtil.getEntityId(detectedChar) or nil
             if victimId then
                 if combatUtil.canRoundDamage(projectileId, victimId, world) then
                     local finalDamage = combatUtil.getDamageFromRoundToInstance(projectileId, hitInstance, world)

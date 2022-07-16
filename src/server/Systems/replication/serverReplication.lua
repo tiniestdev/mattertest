@@ -7,23 +7,19 @@ local Remotes = require(ReplicatedStorage.Remotes)
 
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local playerUtil = require(ReplicatedStorage.Util.playerUtil)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 local Archetypes = require(ReplicatedStorage.Archetypes)
 
 local RequestReplicateEntities = matterUtil.NetSignalToEvent("RequestReplicateEntities", Remotes)
 
-local function getArchetypesToReplicate(dis)
-    local storage = Matter.useHookState(dis)
-    return storage
-end
+local getArchetypesToReplicate = require(ReplicatedStorage.HookStates.foo)
 
-local encountered = {}
-local recordedChange = {}
-local entitiesToReplicate = {}
-local entityIdToIndex = {}
+local checkComponents = {}
 
 local system = function(world)
-    local removedReplicatedIds = {}
+    local entitiesToReplicate = {}
+    local entitiesToDespawn = {}
     local archetypesToReplicate = getArchetypesToReplicate()
 
     if not archetypesToReplicate.init then
@@ -34,93 +30,100 @@ local system = function(world)
         end
     end
 
+    -- For players manually requesting entities
     for i, player, listOfEntityIds in Matter.useEvent(RequestReplicateEntities, "Event") do
-        -- print("GOT REQUEST FROM PLAYER TO REPLICATE ENTITIES", player, listOfEntityIds)
         for _, entityId in ipairs(listOfEntityIds) do
-            if not world:contains(entityId) then continue end
+            if not world:contains(entityId) then
+                table.insert(entitiesToDespawn, entityId)
+            end
             local rtcC = world:get(entityId, Components.ReplicateToClient)
             if rtcC then
                 for _, archetypeName in ipairs(rtcC.archetypes) do
                     replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world)
-                    -- print("RR EVENT: replicated entity " .. entityId .. " to archetype " .. archetypeName)
                 end
             end
         end
     end
 
-    -- force replicate entities that a client is currently missing
-    -- Automatically replicates changes in an entity's archetypes
-    -- like if it wanted to take on a different archetype
-    local allComponentsSet = {}
+    -- Add to the *total possible* entities that can replicate
+    -- The actual list of entities that will ACTUALLY be replicated is made below this
     for id, rtcCR in world:queryChanged(Components.ReplicateToClient) do
         if rtcCR.new then
             if rtcCR.new.archetypes == nil then
                 continue
             end
-            -- entitiesToReplicate[id] = rtcCR.new.archetypes
+            if not rtcCR.old then
+                -- brand new entity. be sure to replicate it all
+                entitiesToReplicate[id] = rtcCR.new
+            end
 
+            -- add any kind of new commponents to checkComponents
+            -- so we can call queryChanged on them later
             for _, archetypeName in ipairs(rtcCR.new.archetypes) do
-                if not table.find(archetypesToReplicate.archetypes, archetypeName) then
-                    table.insert(archetypesToReplicate.archetypes, archetypeName)
+                local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+                for componentName, _ in pairs(componentSet) do
+                    checkComponents[componentName] = true
                 end
             end
         else
-            table.insert(removedReplicatedIds, id)
-        end
-    end
-
-    for id, archetypeList in ipairs(entitiesToReplicate) do
-        
-    end
-
-    for i, archetypeName in ipairs(archetypesToReplicate.archetypes) do
-        local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
-        for componentName, v in pairs(componentSet) do
-            allComponentsSet[componentName] = true
-        end
-    end
-
-    local changedEntitiesToChangeRecords = {}
-    local changedEntitiesToChangedArchetypes = {}
-    local function recordChangedEntity(id, componentName, CR, validArchetypesList)
-        if not validArchetypesList then return end
-        if not changedEntitiesToChangeRecords[id] then changedEntitiesToChangeRecords[id] = {} end
-        if not changedEntitiesToChangedArchetypes[id] then changedEntitiesToChangedArchetypes[id] = {} end
-        changedEntitiesToChangeRecords[id][componentName] = CR
-        local archetypesContainingComponent = matterUtil.getArchetypesContainingComponentOutOf(componentName, validArchetypesList)
-        tableUtil.AppendUnique(changedEntitiesToChangedArchetypes[id], archetypesContainingComponent)
-        print("entity id " .. id .. " changed archetypes: " .. table.concat(changedEntitiesToChangedArchetypes[id], ", "))
-    end
-
-    for componentName, v in pairs(allComponentsSet) do
-        if recordedChange[componentName] then
-            for id, CR in world:queryChanged(Components[componentName]) do
-                local rtcC = world:get(id, Components.ReplicateToClient)
-                if not rtcC then continue end
-                if not matterUtil.isChangeRecordDiff(CR) then return end
-                recordChangedEntity(id, componentName, CR, rtcC.archetypes)
+            if not world:contains(id) then
+                table.insert(entitiesToDespawn, id)
             end
-        else
-            for id, component, rtcC in world:query(Components[componentName], Components.ReplicateToClient) do
-                local CR = {
-                    new = component,
-                    old = nil,
-                }
-                recordChangedEntity(id, componentName, CR, rtcC.archetypes)
+            if rtcCR.old and rtcCR.old.archetypes then
+                for _, archetypeName in ipairs(rtcCR.old.archetypes) do
+                    local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
+                    for componentName, _ in pairs(componentSet) do
+                        checkComponents[componentName] = nil
+                    end
+                end
             end
-            recordedChange[componentName] = true
         end
     end
 
-    -- so i know we just got a list of components we changed but
-    -- we should stick with working with archetypes for whatever reason idk WHATEVER
-    matterUtil.replicateEntitiesWithChangedArchetypes(changedEntitiesToChangedArchetypes, world)
-
-    -- some function here that manages every single archetype's changed event
-    if #removedReplicatedIds > 0 then
-        Remotes.Server:Create("DespawnedEntities"):SendToAllPlayers(removedReplicatedIds)
+    -- To prevent constantly replicating every single entity ever, we attempt to only get those
+    -- entities that have *changed*
+    for componentName, _ in pairs(checkComponents) do
+        for id, CR in world:queryChanged(Components[componentName]) do
+            if not CR.new then continue end
+            if entitiesToReplicate[id] then continue end
+            local rtcC = world:get(id, Components.ReplicateToClient)
+            if not rtcC then continue end
+            entitiesToReplicate[id] = rtcC
+            -- print("entity " .. id .. " has changed " .. componentName)
+        end
     end
 
+    -- Actual replication of all entities inside entitiesToReplicate
+    -- if the server wants to erase a field, it must be specified in ComponentInfos
+    -- since it will typically ignore Matter.None s while merging via patch
+    local resetFlagsForIds = {}
+    for id, rtcC in pairs(entitiesToReplicate) do
+        if rtcC.disabled then
+            if rtcC.replicateFlag then
+                table.insert(resetFlagsForIds, id)
+            else
+                continue
+            end
+        end
+        for _, archetypeName in ipairs(rtcC.archetypes) do
+            local playersToReplicateTo = playerUtil.getFilteredPlayerSet(rtcC.whitelist, rtcC.blacklist)
+            for player, _ in pairs(playersToReplicateTo) do
+                replicationUtil.replicateServerEntityArchetypeTo(player, id, archetypeName, world)
+            end
+        end
+    end
+
+    for _, id in ipairs(resetFlagsForIds) do
+        local rtcC = world:get(id, Components.ReplicateToClient)
+        if not rtcC then continue end
+        world:insert(id, rtcC:patch({
+            replicateFlag = false,
+        }))
+    end
+
+    if #entitiesToDespawn > 0 then
+        Remotes.Server:Create("DespawnedEntities"):SendToAllPlayers(entitiesToDespawn)
+    end
 end
 
 return {

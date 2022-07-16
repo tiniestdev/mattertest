@@ -159,7 +159,7 @@ function replicationUtil.deserializeArchetype(archetypeName, payload, world)
         print(payload)
     end
 
-    print("Deserializing archetype", archetypeName, "with payload", payload)
+    -- print("Deserializing archetype", archetypeName, "with payload", payload)
 
     local foundMethod = serializers.SerFunctions[archetypeName] and serializers.SerFunctions[archetypeName].deserialize
     if foundMethod then
@@ -271,9 +271,14 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
 
     -- Now apply the remapped component data and hydrate em all up
     -- THE PART WHERE ALL THE COMPONENT DATA IS ACTUALLY REPLICATED INTO THE ENTITY
-    for componentName, componentData in pairs(remappedComponentsData) do
-        if not matterUtil.isClientLocked(mainRecipientId, world) then
-            replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+    if not matterUtil.isClientLocked(mainRecipientId, world) and not payload.OVERRIDELOCK then
+        for componentName, componentData in pairs(remappedComponentsData) do
+            -- testing to see if this just makes more sense instead of specifying nil fields
+            -- actually yeah it just makes sense to overwrite the component.
+            -- the server's not going to replicate a few select fields, it'll just send the entire component
+            -- so don't worry about specifying nil fields those seem to be a rare case
+            -- replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+            replicationUtil.overwriteComponent(mainRecipientId, componentName, componentData, world)
         end
     end
 
@@ -291,12 +296,41 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
 
     -- give it an serverEntityId/clientEntityId attribute
     if remappedComponentsData["Instance"] then
-        matterUtil.setEntityId(remappedComponentsData.Instance.instance, mainRecipientId)
+        if remappedComponentsData.Instance.instance then
+            matterUtil.setEntityId(remappedComponentsData.Instance.instance, mainRecipientId)
+        else
+            -- UHHHHHHHHHHHHH OOPS???????????
+            -- instance is nil for some ODD REASON!!!!!!!!
+            -- probably indicative of some private player-owned part that isn't accessible to every other client
+            -- so just do nothing and deal with the lack of entityId in whatever systems wanted it
+
+            -- warn("INSTANCE IS NIL:", mainRecipientId, "... RETRYING")
+            -- task.delay(1, function()
+            --     Remotes.Client:Get("RequestReplicateEntities"):SendToServer({payload.entityId})
+            -- end)
+        end
     end
 
     return mainRecipientId
 end
 
+function replicationUtil.overwriteComponent(entityId, componentName, newData, world)
+    if not world:contains(entityId) then
+        warn("Tried to insert or update component on entityId ", entityId, " which does not exist")
+        error(debug.traceback())
+    end
+    if not Components[componentName] then
+        warn("Tried to insert or update component ", componentName, " which does not exist")
+        error(debug.traceback())
+    end
+    local currComponent = world:get(entityId, Components[componentName])
+
+    world:insert(entityId, Components[componentName](newData))
+    currComponent = world:get(entityId, Components[componentName])
+    return currComponent
+end
+
+-- TO ALLOW THE SERVER TO ERASE A FIELD (nils), IT SHOULD BE SPECIFIED IN COMPONENTINNFOS
 function replicationUtil.insertOrUpdateComponent(entityId, componentName, newData, world)
     if not world:contains(entityId) then
         warn("Tried to insert or update component on entityId ", entityId, " which does not exist")
@@ -367,7 +401,6 @@ function replicationUtil.replicateServerEntityArchetypeTo(player, entityId, arch
     -- check that we're not missing components, or else the client's gonna keep requesting the same thing over and over again
     if matterUtil.isArchetype(entityId, archetypeName, world) then
         local payload = replicationUtil.serializeArchetype(archetypeName, entityId, replicationUtil.SERVERSCOPE, entityId, world)
-        -- print("ReplicationUtil: Sent payload ", payload)
         Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, archetypeName, payload)
     else
         warn("ReplicationUtil: Tried to replicate archetype ", archetypeName, " of ", entityId, " but it is missing the following components")
@@ -384,12 +417,7 @@ function replicationUtil.replicateServerEntityArchetypeToAll(entityId, archetype
     end
 end
 
-function replicationUtil.replicateChangeRecords(id, changeRecords, world)
-
-end
-
-function replicationUtil.replicateChangeRecordsTo(player, id, changeRecords, world)
-
+function replicationUtil.replicateEntity(id, world)
 end
 
 function replicationUtil.replicateOwnPlayer(player, playerEntityId, world)

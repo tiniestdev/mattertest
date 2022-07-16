@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Components = require(ReplicatedStorage.components)
@@ -12,7 +13,27 @@ local cframeUtil = require(ReplicatedStorage.Util.cframeUtil)
 
 local projectileUtil = {}
 
-function projectileUtil.fireRound(cframe, velocity, roundName, ignoreList, world)
+-- function projectileUtil.fireProjectileFromComponents(components, world)
+--     local id = world:spawn()
+
+--     for componentName, componentInfo in pairs(components) do
+--         world:insert(id, Components[componentName](componentInfo))
+--     end
+
+--     if RunService:IsServer() then
+--         world:insert(id, Components.ReplicateToClient({
+--             archetypes = {"BulletArchetype"},
+--             disabled = true,
+--             replicateFlag = true, -- should immeidately replicate to client upon spawn
+--         }))
+--     else
+--         world:insert(id, Components.Ours({}))
+--     end
+
+--     return id
+-- end
+
+function projectileUtil.fireRound(cframe, velocity, roundName, ignoreList, creatorId, world)
     roundName = roundName or "Default"
     local roundInfo = RoundInfos.Catalog[roundName]
     assert(roundInfo, "No round info for " .. roundName)
@@ -52,11 +73,21 @@ function projectileUtil.fireRound(cframe, velocity, roundName, ignoreList, world
 
         world:insert(id, Components[componentName](componentInfo))
     end
-    world:insert(id, Components.ReplicateToClient({
-        archetypes = {"BulletArchetype"},
-        disabled = true,
-        replicateFlag = true, -- should immeidately replicate to client upon spawn
-    }))
+
+    if RunService:IsServer() then
+        world:insert(id, Components.ReplicateToClient({
+            archetypes = {"BulletArchetype"},
+            disabled = true,
+            replicateFlag = true, -- should immeidately replicate to client upon spawn
+        }))
+    else
+        world:insert(id,
+            Components.Ours({}),
+            Components.CreationTag({
+                creatorId = creatorId,
+            })
+        )
+    end
 
     return id
 end
@@ -123,6 +154,9 @@ function projectileUtil.stepProjectileUntilHit(projectileId, projectileC, timeDe
 
     return {
         hit = hit,
+        Instance = castResult.Instance,
+        Position = castResult.Position,
+        Normal = castResult.Normal,
     }
 end
 
@@ -420,12 +454,17 @@ function projectileUtil.renderProjectile(id, projectileC, noBeam)
             storage.Trail.Attachment1 = storage.T1
         end
 
+        storage.lastCFrame = projectileC.cframe
         storage.init = true
     end
+
     -- Bullets should have its nose be right at position, and its tail
     -- extended outward from the position depending on velocity.
     storage.B0.WorldPosition = projectileC.cframe.Position
-    storage.B1.WorldPosition = projectileC.cframe.Position - projectileC.velocity * 0.02
+    local currCFrame = projectileC.cframe
+    local changeDist = (currCFrame.Position - storage.lastCFrame.Position).Magnitude
+    storage.B1.WorldPosition = projectileC.cframe.Position - projectileC.velocity.Unit * changeDist * 0.5
+    -- storage.B1.WorldPosition = projectileC.cframe.Position - projectileC.velocity * 0.01
 
     -- Trails should be orthogonal to the velocity.
     if storage.T0 then
@@ -439,6 +478,8 @@ function projectileUtil.renderProjectile(id, projectileC, noBeam)
     else
         storage.Beam.Enabled = true
     end
+
+    storage.lastCFrame = projectileC.cframe
 end
 
 

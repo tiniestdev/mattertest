@@ -45,6 +45,7 @@ return function(world, _, ui)
     end
 
     for id, equipperCR in world:queryChanged(Components.Equipper) do
+        if not equipperCR.new then continue end
 
         if equipperCR.old and equipperCR.old.equippableId then
             local oldEquippableId = equipperCR.old.equippableId

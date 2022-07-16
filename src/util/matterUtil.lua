@@ -122,6 +122,7 @@ function matterUtil.SignalToEvent(event)
     return newSignal
 end
 
+-- Remotes
 function matterUtil.NetSignalToEvent(signalName, remotes)
     local newSignal = Instance.new("BindableEvent")
     if RunService:IsServer() then
@@ -241,27 +242,12 @@ end
 
 function matterUtil.isArchetype(entityId, archetypeName, world)
     local componentSet = matterUtil.getComponentSetFromArchetype(archetypeName)
-    if archetypeName == "GunTool" then
-        print("GUNTOOL CHECK ARCHETYPE", entityId, archetypeName)
-        print(componentSet)
-    end
     for componentName, _ in pairs(componentSet) do
-        if archetypeName == "GunTool" then
-            if not world:contains(entityId) then
-                print("GUNTOOL REJECT CASE 1")
-                return false
-            end
-            if not world:get(entityId, Components[componentName]) then
-                print("GUNTOOL REJECT CASE 2")
-                return false
-            end
-        else
-            if not world:contains(entityId) then
-                return false
-            end
-            if not world:get(entityId, Components[componentName]) then
-                return false
-            end
+        if not world:contains(entityId) then
+            return false
+        end
+        if not world:get(entityId, Components[componentName]) then
+            return false
         end
     end
     return true
@@ -473,13 +459,10 @@ function matterUtil.replicateChangedArchetypes(archetypeName, world)
 
     local resetFlagsForIds = {}
 
-    if archetypeName == "GunTool" then
-        print("GT: replicateChangedArchetypes for GunTool")
-    end
+    -- if archetypeName == "GunTool" then
+    --     print("GT: replicateChangedArchetypes for GunTool")
+    -- end
     for id, crs in pairs(matterUtil.getChangedEntitiesOfArchetype(archetypeName, world)) do
-        if archetypeName == "GunTool" then
-            print("GGGGGGGGGGGGGGGG")
-        end
         local rtcC = world:get(id, Components.ReplicateToClient)
         if not rtcC then continue end
         if rtcC.disabled then
