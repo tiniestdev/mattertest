@@ -17,8 +17,9 @@ RoundInfos.Catalog = {
     Heavy = {
         Projectile = {
             maxBounces = 1,
-            beamObj = Assets.Rounds.Default,
-            trailObj = Assets.Rounds.DefaultTrail,
+            beamObj = Assets.Rounds.Heavy,
+            trailObj = Assets.Rounds.HeavyTrail,
+            trailWidth = 0.15,
             mass = 0.5,
         },
         Round = {
@@ -38,6 +39,21 @@ RoundInfos.Catalog = {
         },
         Round = {
             baseDamage = 10,
+        }
+    },
+    HeavyBouncy = {
+        Projectile = {
+            minBounces = 2,
+            maxBounces = 8,
+            bounceChance = 0.7,
+            beamObj = Assets.Rounds.HeavyBouncy,
+            trailObj = Assets.Rounds.HeavyBouncyTrail,
+            trailWidth = 0.8,
+            elasticity = 0.9,
+            mass = 1,
+        },
+        Round = {
+            baseDamage = 80,
         }
     },
     Chaotic = {

@@ -9,6 +9,7 @@ local RoundInfos = require(ReplicatedStorage.RoundInfos)
 local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 local randUtil = require(ReplicatedStorage.Util.randUtil)
 local vecUtil = require(ReplicatedStorage.Util.vecUtil)
+local drawUtil = require(ReplicatedStorage.Util.drawUtil)
 local cframeUtil = require(ReplicatedStorage.Util.cframeUtil)
 
 local projectileUtil = {}
@@ -145,6 +146,8 @@ function projectileUtil.stepProjectileUntilHit(projectileId, projectileC, timeDe
         iters = iters + 1
     end
 
+    -- drawUtil.point(currCFrame.Position, Color3.new(0, 1, 0))
+
     world:insert(projectileId, projectileC:patch({
         cframe = currCFrame,
         velocity = currVelocity,
@@ -223,7 +226,7 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
                 -- rotate the normal by theta
                 currVelocity = cframeUtil.reflectOffNormal(currVelocity, surfaceNormal) * projectileC.elasticity
                 -- nudge the finalPos outward in preparation for reflecting
-                finalPos = finalPos + (currVelocity * Constants.EPSILON)
+                finalPos = finalPos + (currVelocity.Unit * Constants.EPSILON)
                 -- currVelocity = Vector3.new(0,500,0)
                 bounces = bounces + 1
             elseif currPenetration < projectileC.penetration then
@@ -422,6 +425,34 @@ end
 
 function projectileUtil.unrenderProjectile(projectileId)
     cleanupStorage(projectileId)
+end
+
+function projectileUtil.renderProjectileTrailLine(pos1, pos2, projectileC)
+    if not projectileC.trailObj then warn("why are we trying to render a trail line without a trail obj?") return end
+
+    local T0 = Instance.new("Attachment")
+    local T1 = Instance.new("Attachment")
+    T0.Name = "TEMP0"
+    T1.Name = "TEMP1"
+    T0.Parent = workspace.Terrain
+    T1.Parent = workspace.Terrain
+
+    local ortho = projectileC.cframe.RightVector
+
+    T0.WorldPosition = (ortho.Unit * projectileC.trailWidth) + pos1
+    T1.WorldPosition = (ortho.Unit * -projectileC.trailWidth) + pos1
+
+    local Trail = projectileC.trailObj:Clone()
+    Trail.Parent = T0
+    Trail.Attachment0 = T0
+    Trail.Attachment1 = T1
+
+    T0.WorldPosition = (ortho.Unit * projectileC.trailWidth) + pos2
+    T1.WorldPosition = (ortho.Unit * -projectileC.trailWidth) + pos2
+
+    task.defer(function()
+    
+    end)
 end
 
 function projectileUtil.renderProjectile(id, projectileC, noBeam)

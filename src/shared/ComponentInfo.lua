@@ -255,6 +255,7 @@ ComponentInfo.Catalog = {
 
 		-- STATE
 		cframe = {}, -- cframe of the projectile
+		-- lastCFrame = {}, -- for rendering purposes
 		velocity = {}, -- speed and direction
 		life = {}, -- how long it has been alive
 		bounces = {}, -- current bounces it used up

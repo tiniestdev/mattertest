@@ -35,6 +35,7 @@ return function(world)
             if creatorId then
                 -- TODO: we expect this to be a gun, but this may change in da futur
                 if not world:contains(creatorId) then
+                    -- happens to the same bullets over and over again, if nonexistent might have to pretend it doesnt exist?
                     warn("Creator id not in world", creatorId)
                     continue
                 end

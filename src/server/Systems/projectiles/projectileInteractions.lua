@@ -51,7 +51,6 @@ return function(world)
                     if instanceC then
                         table.insert(blacklist, instanceC.instance)
                     end
-                    -- local blood = combatUtil.sprayBloodFx(hitPos, hitVelocity, randUtil.getNum(3,6), blacklist)
 
                     if lastHealth > 0 then
                         local pitch = (7 / math.log(hitVelocity.Magnitude))^2

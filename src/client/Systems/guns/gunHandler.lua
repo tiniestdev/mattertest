@@ -18,14 +18,16 @@ return function(world)
         local charId = localUtil.waitForCharacterEntityId(world)
         if equippableC.equipperId == charId then
             -- equipped
-            world:insert(id, Components.ClientLocked({
-                clientLocked = true,
-            }))
+            -- print("EQUIPPED")
+            -- world:insert(id, Components.ClientLocked({
+            --     clientLocked = true,
+            -- }))
         else
             -- unequipped
-            world:insert(id, Components.ClientLocked({
-                clientLocked = false,
-            }))
+            -- print("UNEQUIPPED")
+            -- world:insert(id, Components.ClientLocked({
+            --     clientLocked = false,
+            -- }))
         end
     end
 

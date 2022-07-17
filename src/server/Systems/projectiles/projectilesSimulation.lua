@@ -12,20 +12,46 @@ return function(world, _, ui)
     local deadBullets = {}
     -- local updateBullets = {}
 
+    local newBulletCFrames = {}
+    for id, projectileCR in world:queryChanged(Components.Projectile) do
+        if projectileCR.new and not projectileCR.old then
+            -- replicate first time bullets
+            table.insert(newBulletCFrames, {id, projectileCR.new.cframe})
+        end
+    end
+
+    if #newBulletCFrames > 0 then
+        Remotes.Server:Create("InitialProjectileCFrames"):SendToAllPlayers(newBulletCFrames)
+    end
+
+    local stepResultsMap = {}
     for id, projectileC in world:query(Components.Projectile) do
         if not projectileC.active then continue end
-        local stepResults = projectileUtil.stepProjectile(id, projectileC, Matter.useDeltaTime(), world)
+        stepResultsMap[id] = projectileUtil.stepProjectile(id, projectileC, Matter.useDeltaTime(), world)
+    end
+    
+    for id, projectileC in world:query(Components.Projectile) do
+        if not projectileC.active then continue end
+        local stepResults = stepResultsMap[id]
+
         if stepResults.destroyed then
             table.insert(deadBullets, id)
         end
+
         if stepResults.updateReplication then
             local rtcC = world:get(id, Components.ReplicateToClient)
             if rtcC then
-                world:insert(id, rtcC:patch({
-                    replicateFlag = true,
-                }))
+                world:insert(id,
+                    -- projectileC:patch({
+                    --     lastCFrame = lastCFrame,
+                    -- }),
+                    rtcC:patch({
+                        replicateFlag = true,
+                    })
+                )
             end
         end
+
         if stepResults.interactions then
             Remotes.Server:Create("ProjectileInteractions"):SendToAllPlayers(stepResults.interactions, id)
             Intercom.Get("ProjectileInteractions"):Fire(stepResults.interactions, id)
@@ -39,6 +65,7 @@ return function(world, _, ui)
                 active = false,
                 dead = true,
             }))
+            -- we JUST died
             local rtcC = world:get(id, Components.ReplicateToClient)
             if rtcC then
                 world:insert(id, rtcC:patch({

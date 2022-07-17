@@ -48,7 +48,7 @@ ToolInfos.Catalog = {
                 Constants.FireModes.Burst,
             },
             roundType = "Bouncy",
-            barrelSpeed = 1000,
+            barrelSpeed = 300,
         },
     },
 }
