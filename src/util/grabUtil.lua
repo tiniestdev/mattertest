@@ -168,7 +168,7 @@ grabUtil.getAlignPos = function(parent)
     -- so we cap it at 12
     alignPos.MaxForce = 0
     alignPos.MaxVelocity = 100
-    alignPos.Responsiveness = 30
+    alignPos.Responsiveness = 60
     alignPos.Parent = parent
     -- DO NOT ENABLE REACTION FORCE
     -- it freezes stuff for some reason
@@ -179,7 +179,7 @@ grabUtil.getAlignRot = function(parent)
     local alignRot = Instance.new("AlignOrientation")
     alignRot.MaxTorque = 0
     alignRot.MaxAngularVelocity = 4000
-    alignRot.Responsiveness = 30
+    alignRot.Responsiveness = 60
     alignRot.Parent = parent
     return alignRot
 end

@@ -24,7 +24,7 @@ return function(world, _, ui)
             -- drawstuff(aimerC.aimerInstance.Position, lookVec)
             local pos = aimerC.aimerInstance.Position
             local targ = pos + lookVec * 6
-            ui.arrow(pos, targ, Color3.new(0,1,0))
+            ui.arrow(pos, targ, Color3.new(0,0.5,1))
         end
     end
 end

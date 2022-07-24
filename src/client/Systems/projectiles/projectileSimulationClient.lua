@@ -48,14 +48,14 @@ return function(world, _, ui)
                     local tickId = tick()
                     bulletsTickIds[id] = {tickId, creationTagC.creatorId}
                     -- translate to server entity
-                    local serverScopeId = replicationUtil.getScopeIdentifierFromRecipientId(creationTagC.creatorId, world)
-                    Remotes.Client:Get("ProposeProjectile"):SendToServer(projectileCR.new, tickId, serverScopeId.identifier)
+                    local serverId = replicationUtil.recipientIdToSenderId(creationTagC.creatorId)
+                    Remotes.Client:Get("ProposeProjectile"):SendToServer(projectileCR.new, tickId, serverId)
                     projectileUtil.renderProjectile(id, projectileCR.new)
                 else
                     -- This was server created
                     -- If it has an init record, apply it
-                    local bulletServerId = replicationUtil.getScopeIdentifierFromRecipientId(id, world).identifier
-                    local initCFrame = initBulletPos[bulletServerId]
+                    local serverId = replicationUtil.recipientIdToSenderId(id)
+                    local initCFrame = initBulletPos[serverId]
                     table.insert(applyInitBullets, {id, projectileCR.new, initCFrame})
                     initBulletPos[id] = nil
                 end
@@ -129,9 +129,9 @@ return function(world, _, ui)
                 if not creatorId then
                     warn("NO CREATOR ID FOR BULLET!!!!!!!!!", id)
                     table.insert(deactivate, {id, projectileC, true})
-                    -- continue
+                    continue
                 end
-                local serverId = replicationUtil.getScopeIdentifierFromRecipientId(creatorId, world)
+                local serverId = replicationUtil.recipientIdToSenderId(creatorId)
                 Remotes.Client:Get("ProposeProjectileHit"):SendToServer(
                     projectileC,
                     bulletsTickIds[id][1],

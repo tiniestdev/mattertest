@@ -20,6 +20,7 @@ local Definitions = {
     RequestReplicateEntities = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60, })
     }),
+
     -- client to server grabber offset update
     ReplicateGrabberOffset = Net.Definitions.ClientToServerEvent({
         Net.Middleware.RateLimit({ MaxRequestsPerMinute = (60 * 1/0.1), })
@@ -43,6 +44,10 @@ local Definitions = {
 
     -- REPLICATIONS
     ReplicateArchetype = Net.Definitions.ServerToClientEvent({ }),
+    -- For client owned entities to propose changes of components to the server
+    ReplicateClientOwnedEntityStates = Net.Definitions.ServerAsyncFunction({
+        -- Net.Middleware.RateLimit({ MaxRequestsPerMinute = 60 * 2, })
+    }),
     DespawnedEntities = Net.Definitions.ServerToClientEvent({ }),
 
     ClientToServer = Net.Definitions.ClientToServerEvent({ }),

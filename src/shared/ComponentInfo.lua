@@ -21,6 +21,8 @@ export type TransformType = {
 -- lookup of fields that are expected to be found inside any component
 ComponentInfo.genericFields = {
 	["doNotReconcile"] = true,
+	["ignoreReplication"] = true,
+	["lockReferences"] = true,
 }
 
 ComponentInfo.Catalog = {
@@ -39,9 +41,15 @@ ComponentInfo.Catalog = {
 		-- should be removed if you wish to allow replication again
 		-- !!!
 		-- Can be overridden by setting the payload field OVERRIDELOCK to true
-		
+		-- we should probably use the ignoreReplication genericfield above
+		-- and also the lockReferences
 	ClientLocked = {
         CLIENTCOMPONENT = true;
+		-- a list of component names that will reject server replications
+		-- actually idk it might just have to be a special field for every component
+		lockComponents = {};
+		lockLinksComponents = {};
+		-- enables it for every single component
 		clientLocked = {};
 		lockLinks = {};
     },
@@ -58,6 +66,10 @@ ComponentInfo.Catalog = {
 		serverId = {};
 		scope = {};
 		identifier = {};
+	},
+	ClientOwned = {
+		CLIENTCOMPONENT = true;
+		archetypes = {};
 	},
 	-- Such a tag is used to identify an entity as being created
 	-- from a certain other entity, like bullets from a gun.

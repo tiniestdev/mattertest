@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
-local Remotes = require(ReplicatedStorage.Remotes)
 local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 local Value = Fusion.Value

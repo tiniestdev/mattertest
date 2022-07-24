@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Rx = require(ReplicatedStorage.Packages.rx)
 
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 local playerUtil = {}
 
 function playerUtil.getSetOfPlayers()
@@ -97,7 +98,7 @@ function playerUtil.makePlayerEntity(player, world)
         world:insert(
             playerEntityId,
             Components.ReplicateToClient({
-                archetypes = {"PlayerArchetype"}
+                archetypes = tableUtil.ToSet({"PlayerArchetype"})
             })
         )
     end

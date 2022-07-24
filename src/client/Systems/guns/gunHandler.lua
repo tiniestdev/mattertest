@@ -8,33 +8,16 @@ local Matter = require(ReplicatedStorage.Packages.matter)
 local getGunState = require(ReplicatedStorage.HookStates.getGunState)
 local localUtil = require(ReplicatedStorage.Util.localUtil)
 local projectileUtil = require(ReplicatedStorage.Util.projectileUtil)
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 
 return function(world)
 
-    for id, gunToolCR in world:queryChanged(Components.GunTool) do
-        if not gunToolCR.new then continue end
-        local equippableC = world:get(id, Components.Equippable)
-        if not equippableC then continue end
-        local charId = localUtil.waitForCharacterEntityId(world)
-        if equippableC.equipperId == charId then
-            -- equipped
-            -- print("EQUIPPED")
-            -- world:insert(id, Components.ClientLocked({
-            --     clientLocked = true,
-            -- }))
-        else
-            -- unequipped
-            -- print("UNEQUIPPED")
-            -- world:insert(id, Components.ClientLocked({
-            --     clientLocked = false,
-            -- }))
-        end
-    end
-
     local triggeredGuns = {}
     local untriggeredGuns = {}
+    local charId = localUtil.getMyCharacterEntityId(world)
+    if not charId then return end
+    
     for id, gunToolC, equippableC, corporealC in world:query(Components.GunTool, Components.Equippable, Components.Corporeal) do
-        local charId = localUtil.waitForCharacterEntityId(world)
         if equippableC.equipperId ~= charId then continue end
 
         local gunState = getGunState()
@@ -50,7 +33,6 @@ return function(world)
             end
         end
 
-        -- print(id, gunToolC.triggered)
         if gunToolC.triggered then
             if not gunState.lastFired then
                 gunState.lastFired = 0
@@ -87,6 +69,24 @@ return function(world)
                     firing = false,
                 }))
             end
+        end
+        
+        -- CHAR MOVEMENT
+        if not gunState.gyro then
+            local gyro = Instance.new("BodyGyro")
+            gunState.gyro = gyro
+            gyro.MaxTorque = Vector3.new(0, 100000, 0)
+            gyro.D = 100
+            gyro.P = 10000
+        end
+        local aimerC = localUtil.getAimerC(world)
+        if aimerC then
+            local aimerCF = aimerC.aimerCFrame or aimerC.aimerInstance.CFrame
+            gunState.gyro.CFrame = CFrame.new(aimerCF.Position, aimerC.target)
+        end
+        local hrp = localUtil.getHRP()
+        if hrp then
+            gunState.gyro.Parent = hrp
         end
     end
 

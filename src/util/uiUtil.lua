@@ -48,6 +48,10 @@ end
 
 function uiUtil.getStorablePropsFromStorage(storageId, world)
     local storageC = world:get(storageId, Components.Storage)
+    if not storageC then
+        warn("No storage component found in entity " .. storageId)
+        return {}
+    end
     local storableIds = storageC.storableIds
     local storableProps = {}
     for storableId, _ in pairs(storableIds) do
@@ -55,13 +59,6 @@ function uiUtil.getStorablePropsFromStorage(storageId, world)
         table.insert(storableProps, newProps)
     end
     return storableProps
-end
-
-function uiUtil.fireUpdateToolbarSignal(world)
-    local MatterClient = require(Players.LocalPlayer:FindFirstChild("MatterClient", true))
-    local ourPlayerId = MatterClient.OurPlayerEntityId
-    local ourCharacterId = world:get(ourPlayerId, Components.Player).characterId
-    Intercom.Get("UpdateToolbar"):Fire(ourCharacterId)
 end
 
 return uiUtil

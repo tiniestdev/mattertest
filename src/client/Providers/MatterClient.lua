@@ -48,7 +48,6 @@ function MatterClient:AxisPrepare()
 
     debugger:autoInitialize(MatterClient.MainLoop)
     MatterClient.MainLoop:scheduleSystems(systems)
-    MatterClient.MainLoop:begin({ default = RunService.Stepped})
 
     task.wait(0.1)
 end
@@ -81,26 +80,33 @@ function MatterClient:AxisStarted()
     end)
 
     -- request replicatable entities
-    Remotes.Client:Get("RequestReplicatedEntites"):CallServerAsync():andThen(function(response)
-        local count = response.count
-        local listOfServerIds = response.listOfServerIds
+    task.spawn(function()
+        Remotes.Client:Get("RequestReplicatedEntites"):CallServerAsync():andThen(function(response)
+            local count = response.count
+            local listOfServerIds = response.listOfServerIds
+            print("MatterClient: Got requested replicated entities!")
+            print("MatterClient: Counted: " .. count)
 
-        if count ~= #listOfServerIds then
-            error("Requested " .. #listOfServerIds .. " entities, but got " .. count .. " back")
-        end
-        local notReplicatedYet = {}
-        for i, serverId in ipairs(listOfServerIds) do
-            local foundClientId = replicationUtil.senderIdToRecipientId(serverId)
-            local entityFound = world:contains(foundClientId)
-            if not entityFound then
-                table.insert(notReplicatedYet, serverId)
+            if count ~= #listOfServerIds then
+                error("Requested " .. #listOfServerIds .. " entities, but got " .. count .. " back")
             end
-        end
+            local notReplicatedYet = {}
+            for i, serverId in ipairs(listOfServerIds) do
+                local foundClientId = replicationUtil.senderIdToRecipientId(serverId)
+                local entityFound = world:contains(foundClientId)
+                if not entityFound then
+                    table.insert(notReplicatedYet, serverId)
+                end
+            end
 
-        if #notReplicatedYet > 0 then
-            Remotes.Client:Get("RequestReplicateEntities"):SendToServer(notReplicatedYet)
-            -- print("Asking server for more", notReplicatedYet)
-        end
+            if #notReplicatedYet > 0 then
+                Remotes.Client:Get("RequestReplicateEntities"):SendToServer(notReplicatedYet)
+                print("Asking server for more", notReplicatedYet)
+            end
+
+            print("Starting main Matter loop")
+            MatterClient.MainLoop:begin({ default = RunService.Stepped})
+        end)
     end)
 
     Remotes.Client:WaitFor("ReplicateArchetype"):andThen(function(remoteInstance)
@@ -111,12 +117,8 @@ function MatterClient:AxisStarted()
             -- we gotta map it to our local player id
             -- MatterClient.OurPlayerEntityId = localPlayerId
             local entityId = replicationUtil.deserializeArchetype(archetypeName, payload, world)
-            if archetypeName == "PlayerArchetype" then
-                
-            else
-                if payload.scope == Players.LocalPlayer.UserId then
-                    world:insert(entityId, Components.Ours({}))
-                end
+            if not archetypeName == "PlayerArchetype" and payload.scope == Players.LocalPlayer.UserId then
+                world:insert(entityId, Components.Ours({}))
             end
         end)
     end)
@@ -144,65 +146,22 @@ function MatterClient:AxisStarted()
         end)
     end)
 
-    Intercom.Get("EquipEquippable"):Connect(function(equippableId)
-        -- cooldown
-        print("!")
-        if not timeUtil.getDebounce("equipDebounce", 0.4) then return end
-        print("Equipping equippable", equippableId)
-
-        -- make sure we're actually an equipper
-        local myCharacterId = localUtil.getMyCharacterEntityId(world)
-        if not myCharacterId then warn("wtf no characterid entity??") end
-        local equipperC = world:get(myCharacterId, Components.Equipper)
-        local oldEquippableId = equipperC.equippableId
-        if not equipperC then warn("wtf no equipper on entity ", myCharacterId, "?") end
-        local replicatedC = world:get(equippableId, Components.Replicated)
-        if not replicatedC then warn("wtf no replicated on entity ", equippableId, "?") end
-        if not replicatedC.serverId then warn("wtf no serverId on replicated component on entity ", equippableId, "?") end
-
-        -- okay actual equip logic starts here
-        if equipperC.equippableId == equippableId then
-            -- unequip it
-            world:insert(myCharacterId, equipperC:patch({
-                equippableId = Matter.None,
-            }))
-            Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(nil):andThen(function(response)
-                print("RequestEquipEquippable response", response)
-                if response == true then
-                    print("Equip succeeded")
-                else
-                    warn("!! Unequip failed !!")
-                    warn("Tried to unequip " .. tostring(equippableId) .. " but server said " .. tostring(response))
-                    world:insert(myCharacterId, equipperC:patch({
-                        equippableId = oldEquippableId,
-                    }))
-                end
-            end)
-        else
-            world:insert(myCharacterId, equipperC:patch({
-                equippableId = equippableId,
-            }))
-            Remotes.Client:Get("RequestEquipEquippable"):CallServerAsync(replicatedC.serverId):andThen(function(response)
-                print("response: ", response)
-                if response == true then
-                    print("Equip succeeded")
-                else
-                    warn("!! Equip failed !!")
-                    warn("Tried to equip " .. tostring(equippableId) .. " but server said " .. tostring(response))
-                    world:insert(myCharacterId, equipperC:patch({
-                        equippableId = oldEquippableId or Matter.None,
-                    }))
-                end
-            end)
-        end
-    end)
-
     UserInputService.InputBegan:Connect(function(input)
         if input.KeyCode == Enum.KeyCode.F4 then
             print("TOGGLING DEBUGGER")
             debugger:toggle()
         end
     end)
+
+    -- task.spawn(function()
+    --     local characterId = localUtil.waitForCharacterEntityId(world)
+    --     local equipperC = world:get(characterId, Components.Equipper)
+    --     world:insert(characterId, equipperC:patch({
+    --         ignoreReplication = true,
+    --         lockReferences = true,
+    --     }))
+    --     print("locked references for equipper")
+    -- end)
 end
 
 return MatterClient

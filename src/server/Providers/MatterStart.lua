@@ -65,7 +65,7 @@ function MatterStart:AxisStarted()
             table.insert(replicated, id)
             count = count + 1
         end
-        -- print("HHH:", count, replicated)
+        print("SENDING REQEUSTED ENTITIES:", count, replicated)
         return {count = count, listOfServerIds = replicated}
     end)
 
@@ -86,6 +86,13 @@ function MatterStart:AxisStarted()
 
     Remotes.Server:OnFunction("ProposeRagdollState", function(player, ragdollState)
         local characterId = matterUtil.getCharacterIdOfPlayer(player, world)
+
+        while not characterId do
+            print("WAITING FOR CHARACTER ID")
+            task.wait()
+            characterId = matterUtil.getCharacterIdOfPlayer(player, world)
+        end
+
         local ragdollableC = world:get(characterId, Components.Ragdollable)
         local healthC = world:get(characterId, Components.Health)
 
@@ -114,6 +121,7 @@ function MatterStart:AxisStarted()
         return true
     end)
 
+    --[[
     Remotes.Server:OnFunction("RequestEquipEquippable", function(player, equipId)
         local equipperId = matterUtil.getCharacterIdOfPlayer(player, world)
         local equipperC = world:get(equipperId, Components.Equipper)
@@ -125,9 +133,11 @@ function MatterStart:AxisStarted()
             }))
             return true
         else
+            replicationUtil.replicateServerEntityArchetypeTo(player, equipId, "Equippable", world, true)
+            replicationUtil.replicateServerEntityArchetypeTo(player, equipperId, "Character", world, true)
             return false
         end
-    end)
+    end)]]
 
     Remotes.Server:OnFunction("RequestEntitiesDump", function(player)
         return matterUtil.getEntityViewerData(world)

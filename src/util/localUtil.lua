@@ -21,6 +21,8 @@ function localUtil.getMyPlayerEntityId(world)
     for id, playerC, oursC in world:query(Components.Player, Components.Ours) do
         return id
     end
+    -- Nil should be an acceptable answer
+    -- error("WTF: Could not find player id:\n" .. debug.traceback())
     return nil
 end
 
@@ -41,6 +43,11 @@ function localUtil.getCharacter()
     return Character
 end
 
+function localUtil.getHRP()
+    local Character = localUtil.getCharacter()
+    if not Character then return end
+    return Character:FindFirstChild("HumanoidRootPart")
+end
 function localUtil.getHead()
     local Character = localUtil.getCharacter()
     if not Character then return end
@@ -60,9 +67,11 @@ end
 
 function localUtil.getMyCharacterEntityId(world)
     local playerId = localUtil.getMyPlayerEntityId(world)
+    if not playerId then return end
     local playerC = world:get(playerId, Components.Player)
     if not playerC then
-        error("WTF: Could not find player component:\n" .. debug.traceback())
+        -- Nil should be an acceptable answer
+        -- error("WTF: Could not find character id:\n" .. debug.traceback())
         return nil
     end
     return playerC.characterId

@@ -14,26 +14,6 @@ local cframeUtil = require(ReplicatedStorage.Util.cframeUtil)
 
 local projectileUtil = {}
 
--- function projectileUtil.fireProjectileFromComponents(components, world)
---     local id = world:spawn()
-
---     for componentName, componentInfo in pairs(components) do
---         world:insert(id, Components[componentName](componentInfo))
---     end
-
---     if RunService:IsServer() then
---         world:insert(id, Components.ReplicateToClient({
---             archetypes = {"BulletArchetype"},
---             disabled = true,
---             replicateFlag = true, -- should immeidately replicate to client upon spawn
---         }))
---     else
---         world:insert(id, Components.Ours({}))
---     end
-
---     return id
--- end
-
 function projectileUtil.fireRound(cframe, velocity, roundName, ignoreList, creatorId, world)
     roundName = roundName or "Default"
     local roundInfo = RoundInfos.Catalog[roundName]
@@ -77,7 +57,7 @@ function projectileUtil.fireRound(cframe, velocity, roundName, ignoreList, creat
 
     if RunService:IsServer() then
         world:insert(id, Components.ReplicateToClient({
-            archetypes = {"BulletArchetype"},
+            archetypes = tableUtil.ToSet({"BulletArchetype"}),
             disabled = true,
             replicateFlag = true, -- should immeidately replicate to client upon spawn
         }))
@@ -207,7 +187,7 @@ function projectileUtil.stepProjectile(projectileId, projectileC, timeDelta, wor
 
                 -- reflect like a mirror, but roughen up surfaceNormal
                 local normalCFrame = CFrame.new(finalPos, finalPos + surfaceNormal)
-                local maxAngleOffset = math.rad(15)
+                local maxAngleOffset = math.rad(1)
                 local theta = randUtil.getNum() * math.pi * 2
                 local phi = maxAngleOffset * randUtil.getNum(-1,1)
                 surfaceNormal = (normalCFrame * CFrame.Angles(0, phi, theta)).LookVector

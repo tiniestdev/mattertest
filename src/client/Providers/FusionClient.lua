@@ -11,6 +11,7 @@ local EntityViewer = require(UIFolder.Debug.EntityViewer.EntityViewer)
 local Components = require(ReplicatedStorage.components)
 local MatterClient = require(script.Parent.MatterClient)
 local uiUtil = require(ReplicatedStorage.Util.uiUtil)
+local localUtil = require(ReplicatedStorage.Util.localUtil)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 
@@ -25,11 +26,18 @@ end
 function FusionClient:AxisStarted()
     -- print("FusionClient: Axis started")
 
+    -- localUtil.waitForPlayerEntityId(MatterClient.World)
+    -- localUtil.waitForCharacterEntityId(MatterClient.World)
     local storableProps = Fusion.Value({})
-    Intercom.Get("UpdateToolbar"):Connect(function(charStorageId)
-        storableProps:set(uiUtil.getStorablePropsFromStorage(charStorageId, MatterClient.World))
+    Intercom.Get("UpdateToolbar"):Connect(function()
+        local myCharacterId = localUtil.getMyCharacterEntityId(MatterClient.World)
+        if not myCharacterId then return end
+        storableProps:set(uiUtil.getStorablePropsFromStorage(myCharacterId, MatterClient.World))
     end)
 
+    Intercom.Get("ChangeTeam"):Connect(function(team)
+        Remotes.Client:Get("ChangeTeam"):SendToServer(team)
+    end)
     -- local data = matterUtil.getEntityViewerData(MatterClient.World)
     -- task.wait()
     New "ScreenGui" {

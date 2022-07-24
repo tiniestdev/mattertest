@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Fusion = require(ReplicatedStorage.Fusion)
 
--- local Main = require(script.Parent.Main)
+local Main = require(script.Parent.Main)
 -- local ClearFrame = require(script.Parent.ClearFrame)
 
 -- return function(target)
@@ -28,7 +28,7 @@ return function(target)
         Position = UDim2.new(0.5, 0, 0.5, 0);
         Parent = target;
         [Fusion.Children] = {
-            -- Main {},
+            Main {},
         }
     }
 

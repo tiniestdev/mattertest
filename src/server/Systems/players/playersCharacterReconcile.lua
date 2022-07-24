@@ -4,8 +4,6 @@ local Matter = require(ReplicatedStorage.Packages.matter)
 local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
 local Remotes = require(ReplicatedStorage.Remotes)
 
-local RequestRespawnEvent = MatterUtil.NetSignalToEvent("RequestRespawn", Remotes)
-
 return function(world)
     -- Character addition and worldspawning is handled by spawnLoadedCharacters
     -- LoadCharacter() must be called, and it will make the matter components by itself

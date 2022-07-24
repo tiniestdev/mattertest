@@ -1,19 +1,18 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
-local Remotes = require(ReplicatedStorage.Remotes)
 local Fusion = require(ReplicatedStorage.Fusion)
 local New = Fusion.New
 local Value = Fusion.Value
 
 local Llama = require(ReplicatedStorage.Packages.llama)
-local Rx = require(ReplicatedStorage.Packages.rx)
 
 local ToolbarButton = require(script.ToolbarButton)
 
 return function(props)
 
 	local storableChildren = Fusion.Computed(function()
+		if not props.storableProps then return {} end
 		table.sort(props.storableProps, function(a, b)
 			return a.order < b.order
 		end)

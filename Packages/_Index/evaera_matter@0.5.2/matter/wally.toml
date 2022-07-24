@@ -1,9 +1,0 @@
-[package]
-name = "evaera/matter"
-version = "0.5.2"
-registry = "https://github.com/UpliftGames/wally-index"
-realm = "shared"
-exclude = ["example", "docs", "Packages", ".moonwave", "build", "pages", "tests", "AttackOfTheKillerRoombas.rbxl", "AttackOfTheKillerRoombas.rbxl.lock", "matter.rbxl", "matter.rbxm", "roblox.toml"]
-
-[dependencies]
-TestEZ = "roblox/testez@0.4.1"

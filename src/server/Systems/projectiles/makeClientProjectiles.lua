@@ -49,11 +49,12 @@ return function(world)
                 -- Effects can be like "BounceModifier" or "DamageModifier".
                 -- TODO: idk if just going by barrelSpeed is accurate
                 -- since it'd have time to be effected by gravity
-                local startPos = position + (normal * Constants.EPSILON)
-                local startCFrame = CFrame.new(startPos, position)
+                local velocity = projectileC.velocity
+                local startPos = position + (normal.Unit * Constants.EPSILON)
+                local startCFrame = CFrame.new(startPos, startPos + velocity)
                 local newBulletId = projectileUtil.fireRound(
                     startCFrame,
-                    startCFrame.LookVector.Unit * gunToolC.barrelSpeed,
+                    velocity.Unit * gunToolC.barrelSpeed,
                     roundType,
                     {
                         -- player.Character

@@ -12,10 +12,12 @@ local Remotes = require(ReplicatedStorage.Remotes)
 local Intercom = require(ReplicatedStorage.Intercom)
 local Matter = require(ReplicatedStorage.Packages.matter)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 local replicationUtil = {}
 
 local SenderToRecipientIds = {} -- map to use in clientside
+local RecipientToSenderIds = {} -- map to use in serverside
 local EntityLookup = {}
 
 -- This scope is used for strictly server-owned and server-created entities that should
@@ -210,6 +212,7 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
     replicationUtil.mapSenderIdToRecipientId(payload.entityId, mainRecipientId)
     replicationUtil.setRecipientIdScopeIdentifier(mainRecipientId, payload.scope, payload.identifier)
     -- secondary entities
+    -- these are entities that are REFERENCED by the main entity
     for _, entityInfo in ipairs(serverEntitiesInfos) do
         local serverId = entityInfo.entityId
         local secondaryEntityRecipientId = replicationUtil.getOrCreateReplicatedEntity(serverId, Llama.Set.fromList({entityInfo.archetype}), world)
@@ -235,7 +238,7 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         end
     end
 
-        -- REMAPPING OF PROPERTIES
+    -- REMAPPING OF PROPERTIES
     local oldComponentsData = payload.components
     local remappedComponentsData = {}
     for componentName, _ in pairs(componentSet) do
@@ -243,8 +246,8 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         -- print("payloadComponentData", componentName, payloadComponentData)
         if not payloadComponentData then continue end
 
-        local refProps = matterUtil.getReferencePropertiesOfComponent(componentName, payloadComponentData)
-        local refSetProps = matterUtil.getReferenceSetPropertiesOfComponent(componentName, payloadComponentData)
+        local refProps = matterUtil.getReferencePropertiesOfComponent(componentName)
+        local refSetProps = matterUtil.getReferenceSetPropertiesOfComponent(componentName)
         local updatedProps = {}
         for _, refPropName in ipairs(refProps) do
             if payloadComponentData[refPropName] then
@@ -264,20 +267,34 @@ function replicationUtil.deserializeArchetypeDefault(archetypeName, payload, wor
         end
 
         remappedComponentsData[componentName] = Llama.Dictionary.merge(payloadComponentData, updatedProps)
-        -- make sure we dont get feedback loops for commponents that look for changes and ask the server to change it
+
+        -- make sure we dont get feedback loops for components that look for changes and ask the server to change it
         -- or "propose" changes
-        remappedComponentsData[componentName]["doNotReconcile"] = true
+        -- actually idk if we really need this, it might even interfere with the server trying to set certain relationships
+        -- and it expects us to handle the relationship settings (which use this flag)
+        -- remappedComponentsData[componentName]["doNotReconcile"] = false
     end
 
     -- Now apply the remapped component data and hydrate em all up
     -- THE PART WHERE ALL THE COMPONENT DATA IS ACTUALLY REPLICATED INTO THE ENTITY
     if not matterUtil.isClientLocked(mainRecipientId, world) and not payload.OVERRIDELOCK then
+
+        local coC = world:get(mainRecipientId, Components.ClientOwned)
+        local lockedComponentsSet = (coC and (not payload.OVERRIDELOCK) and matterUtil.getComponentSetFromArchetypeSet(coC.archetypes)) or {}
+
         for componentName, componentData in pairs(remappedComponentsData) do
+            if lockedComponentsSet[componentName] then continue end
             -- testing to see if this just makes more sense instead of specifying nil fields
             -- actually yeah it just makes sense to overwrite the component.
             -- the server's not going to replicate a few select fields, it'll just send the entire component
             -- so don't worry about specifying nil fields those seem to be a rare case
             -- replicationUtil.insertOrUpdateComponent(mainRecipientId, componentName, componentData, world)
+            local existingMainRecipientC = world:get(mainRecipientId, Components[componentName])
+            if existingMainRecipientC and existingMainRecipientC.ignoreReplication and not payload.OVERRIDELOCK then
+                print("ignoring replication")
+                continue
+            end
+
             replicationUtil.overwriteComponent(mainRecipientId, componentName, componentData, world)
         end
     end
@@ -378,6 +395,10 @@ function replicationUtil.setRecipientIdScopeIdentifier(recipientId, scope, ident
 end
 
 function replicationUtil.getScopeIdentifierFromRecipientId(recipientId, world)
+    if not world:contains(recipientId) then
+        warn("Tried to get scope identifier from recipientId ", recipientId, " which does not exist")
+        return nil
+    end
     local replicatedC = world:get(recipientId, Components.Replicated)
     return {scope = replicatedC.scope, identifier = replicatedC.identifier}
 end
@@ -387,9 +408,30 @@ end
 function replicationUtil.senderIdToRecipientId(senderId)
     return tonumber(SenderToRecipientIds[tostring(senderId)])
 end
+function replicationUtil.recipientIdToSenderId(recipientId)
+    return tonumber(RecipientToSenderIds[tostring(recipientId)])
+end
 
 function replicationUtil.mapSenderIdToRecipientId(senderId, recipientId)
     SenderToRecipientIds[tostring(senderId)] = recipientId
+    RecipientToSenderIds[tostring(recipientId)] = senderId
+end
+
+function replicationUtil.removeSenderId(senderId)
+    local recipientId = replicationUtil.senderIdToRecipientId(senderId)
+    if recipientId then
+        RecipientToSenderIds[tostring(recipientId)] = nil
+    end
+    SenderToRecipientIds[tostring(senderId)] = nil
+    EntityLookup[replicationUtil.SERVERSCOPE][senderId] = nil
+end
+function replicationUtil.removeRecipientId(recipientId)
+    -- we usually don't create entities on the client that then link to the server
+    -- local senderId = replicationUtil.recipientIdToSenderId(recipientId)
+    -- if senderId then
+    --     SenderToRecipientIds[tostring(senderId)] = nil
+    -- end
+    RecipientToSenderIds[tostring(recipientId)] = nil
 end
 
 function replicationUtil.getLocalPlayerEntityId()
@@ -397,10 +439,13 @@ function replicationUtil.getLocalPlayerEntityId()
     return replicationUtil.getRecipientIdFromScopeIdentifier(Players.LocalPlayer.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER)
 end
 
-function replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world)
+function replicationUtil.replicateServerEntityArchetypeTo(player, entityId, archetypeName, world, forceReplicate)
     -- check that we're not missing components, or else the client's gonna keep requesting the same thing over and over again
     if matterUtil.isArchetype(entityId, archetypeName, world) then
         local payload = replicationUtil.serializeArchetype(archetypeName, entityId, replicationUtil.SERVERSCOPE, entityId, world)
+        if forceReplicate then
+            payload.OVERRIDELOCK = true
+        end
         Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, archetypeName, payload)
     else
         warn("ReplicationUtil: Tried to replicate archetype ", archetypeName, " of ", entityId, " but it is missing the following components")
@@ -417,12 +462,53 @@ function replicationUtil.replicateServerEntityArchetypeToAll(entityId, archetype
     end
 end
 
-function replicationUtil.replicateEntity(id, world)
-end
-
 function replicationUtil.replicateOwnPlayer(player, playerEntityId, world)
     local payload = replicationUtil.serializeArchetype("PlayerArchetype", playerEntityId, player.UserId, replicationUtil.CLIENTIDENTIFIERS.PLAYER, world)
     Remotes.Server:Create("ReplicateArchetype"):SendToPlayer(player, "PlayerArchetype", payload)
 end
+
+function replicationUtil.addClientOwnedArchetypes(entityId, archetypeSet, world)
+    local coC = world:get(entityId, Components.ClientOwned)
+    if not coC then
+        world:insert(entityId, Components.ClientOwned({}))
+        coC = world:get(entityId, Components.ClientOwned)
+    end
+
+    local newSet = {}
+    if coC.archetypes then
+        for i,v in pairs(coC.archetypes) do
+            newSet[i] = v
+        end
+    end
+    for i,v in pairs(archetypeSet) do
+        newSet[i] = v
+    end
+
+    world:insert(entityId, coC:patch({
+        archetypes = newSet,
+    }))
+end
+
+function replicationUtil.removeClientOwnedArchetypes(entityId, archetypeSet, world)
+    local coC = world:get(entityId, Components.ClientOwned)
+    if not coC then
+        world:insert(entityId, Components.ClientOwned({}))
+        coC = world:get(entityId, Components.ClientOwned)
+    end
+    if not coC.archetypes then return end
+
+    local newSet = {}
+    for i,v in pairs(coC.archetypes) do
+        if not archetypeSet[i] then
+            newSet[i] = true
+        end
+    end
+
+    world:insert(entityId, coC:patch({
+        archetypes = newSet,
+    }))
+end
+
+
 
 return replicationUtil

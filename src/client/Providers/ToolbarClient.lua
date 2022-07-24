@@ -1,9 +1,13 @@
 local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local localUtil = require(ReplicatedStorage.Util.localUtil)
 
+local Matter = require(ReplicatedStorage.Packages.matter)
+local Components = require(ReplicatedStorage.components)
 local Promise = require(ReplicatedStorage.Packages.promise)
 local Remotes = require(ReplicatedStorage.Remotes)
+local Intercom = require(ReplicatedStorage.Intercom)
 
 local Toolbar = {}
 
@@ -26,7 +30,22 @@ function Toolbar:AxisStarted()
              system so uhh im putting this off for later
     ]]
 
-    
+    Intercom.Get("EquipEquippable"):Connect(function(equippableId)
+        local myCharacterId = localUtil.getMyCharacterEntityId(world)
+        if not myCharacterId then warn("wtf no characterid entity??") end
+        local equipperC = world:get(myCharacterId, Components.Equipper)
+        local equippableC = world:get(equippableId, Components.Equippable)
+
+        if equippableId == equipperC.equippableId then
+            world:insert(myCharacterId, equipperC:patch({
+                equippableId = Matter.None
+            }))
+        else
+            world:insert(myCharacterId, equipperC:patch({
+                equippableId = equippableId
+            }))
+        end
+    end)
 end
 
 return Toolbar

@@ -21,7 +21,7 @@ local toolUtil = require(ReplicatedStorage.Util.toolUtil)
 local ToolInfos = require(ReplicatedStorage.ToolInfos)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
-
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 local CharacterEvent = matterUtil.ObservableToEvent(PlayerUtil.getCharactersObservable())
 
@@ -53,7 +53,7 @@ return function(world)
 
         local charEntityId = world:spawn(
             Components.ReplicateToClient({
-                archetypes = {"CharacterArchetype"}
+                archetypes = tableUtil.ToSet({"CharacterArchetype"})
             }),
             Components.Instance({
                 instance = character,

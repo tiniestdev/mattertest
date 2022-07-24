@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 
 local Promise = require(ReplicatedStorage.Packages.promise) 
 local Remotes = require(ReplicatedStorage.Remotes)
+local Intercom = require(ReplicatedStorage.Intercom)
 
 local ResetLogic = {}
 

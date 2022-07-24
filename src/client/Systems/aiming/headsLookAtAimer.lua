@@ -27,7 +27,6 @@ return function(world)
         -- local relativeCF = CFrame.Angles(0, aimerC.roll, 0) * CFrame.Angles(-aimerC.pitch, 0, aimerC.yaw)
         -- local relativeCF = CFrame.Angles(0, st.num, 0)
         -- neckJoint.Transform = relativeCF
-        -- print(neckJoint.Transform)
-        ]]
+        -- print(neckJoint.Transform)]]
     end
 end

@@ -6,14 +6,15 @@ realm = "shared"
 
 [dependencies]
 axis = "sleitnick/axis@0.1.0"
-matter = "evaera/matter@0.5.2"
+matter = "evaera/matter@0.6.1"
 #Net = "vorlias/net@3.0.0"
 Net = "vorlias/net@2.1.4"
 rx = "nightcycle/rx@3.7.3"
 promise = "evaera/promise@4.0.0"
 llama = "freddylist/llama@1.1.1"
 signal = "sleitnick/signal@1.1.0"
-plasma = "evaera/plasma@0.3.0"
+plasma = "evaera/plasma@0.4.2"
 
 [server-dependencies]
 cmdr = "evaera/cmdr@1.8.4"
+profileservice = "alreadypro/profileservice@1.0.4"

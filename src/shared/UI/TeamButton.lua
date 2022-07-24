@@ -1,9 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
-local Remotes = require(ReplicatedStorage.Remotes)
 local Fusion = require(ReplicatedStorage.Fusion)
-local Net = require(ReplicatedStorage.Packages.Net)
+local Intercom = require(ReplicatedStorage.Intercom)
 local New = Fusion.New
 
 return function(props)
@@ -20,7 +19,7 @@ return function(props)
             }
         };
         [Fusion.OnEvent "MouseButton1Click"] = function()
-            Remotes.Client:Get("ChangeTeam"):SendToServer(props.team)
+            Intercom.Get("ChangeTeam"):Fire(props.team)
             -- print("sent event with args: " .. props.team)
         end;
     }

@@ -30,6 +30,7 @@ return function(world, _, ui)
         stepResultsMap[id] = projectileUtil.stepProjectile(id, projectileC, Matter.useDeltaTime(), world)
     end
     
+    local interactions = {}
     for id, projectileC in world:query(Components.Projectile) do
         if not projectileC.active then continue end
         local stepResults = stepResultsMap[id]
@@ -53,9 +54,13 @@ return function(world, _, ui)
         end
 
         if stepResults.interactions then
-            Remotes.Server:Create("ProjectileInteractions"):SendToAllPlayers(stepResults.interactions, id)
-            Intercom.Get("ProjectileInteractions"):Fire(stepResults.interactions, id)
+            table.insert(interactions, {id, stepResults.interactions})
         end
+    end
+
+    if #interactions > 0 then
+        Remotes.Server:Create("ProjectileInteractions"):SendToAllPlayers(interactions)
+        Intercom.Get("ProjectileInteractions"):Fire(interactions)
     end
 
     for _, id in ipairs(deadBullets) do

@@ -12,6 +12,7 @@ local matterUtil = require(ReplicatedStorage.Util.matterUtil)
 local playerUtil = require(ReplicatedStorage.Util.playerUtil)
 local replicationUtil = require(ReplicatedStorage.Util.replicationUtil)
 local ragdollUtil = require(ReplicatedStorage.Util.ragdollUtil)
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 local Net = require(ReplicatedStorage.Packages.Net)
 local Remotes = require(ReplicatedStorage.Remotes)
@@ -39,7 +40,7 @@ local tagToTask = {
         assert(instance:FindFirstChild("Humanoid"))
         local id = world:spawn(
             Components.ReplicateToClient({
-                archetypes = {"CharacterArchetype"}
+                archetypes = tableUtil.ToSet({"CharacterArchetype"})
             }),
             Components.Instance({
                 instance = instance,
@@ -94,7 +95,7 @@ local tagToTask = {
                     grabbableInstance = instance,
                 }),
                 Components.ReplicateToClient({
-                    archetypes = {"GrabbableArchetype"}
+                    archetypes = tableUtil.ToSet({"GrabbableArchetype"})
                 }),
                 Components.NetworkOwned({
                     instances = instance,
@@ -112,7 +113,7 @@ local tagToTask = {
                             grabbableInstance = v,
                         }),
                         Components.ReplicateToClient({
-                            archetypes = {"GrabbableArchetype"}
+                            archetypes = tableUtil.ToSet({"GrabbableArchetype"})
                         }),
                         Components.NetworkOwned({
                             instances = v,

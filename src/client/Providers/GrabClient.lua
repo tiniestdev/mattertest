@@ -87,10 +87,12 @@ function Grab:AxisStarted()
                 -- grabbableInstance = raycastResult.Instance,
                 grabOffsetCFrame = grabOffsetCFrame,
                 grabPointObjectCFrame = grabObjectCFrame,
-            }), Components.ClientLocked({
-                clientLocked = true,
-                lockLinks = true,
+                ignoreReplication = true,
             }))
+            -- , Components.ClientLocked({
+            --     clientLocked = true,
+            --     lockLinks = true,
+            -- }))
 
             Remotes.Client:Get("RequestGrab"):CallServerAsync(raycastResult.Instance, grabOffsetCFrame, grabObjectCFrame):andThen(function(response)
                 if response then
@@ -127,13 +129,17 @@ function Grab:AxisStarted()
 
             task.delay(0.5, function()
                 if not world:contains(characterId) then return end
-                if world:get(characterId, Components.Grabber).grabbableId == nil then
-                    world:insert(characterId,
-                        Components.ClientLocked({
-                            clientLocked = false,
-                            lockLinks = false,
-                        })
-                    )
+                local grabberC = world:get(characterId, Components.Grabber)
+                if grabberC.grabbableId == nil then
+                    world:insert(characterId, grabberC:patch({
+                        ignoreReplication = false,
+                    }))
+                    -- world:insert(characterId,
+                        -- Components.ClientLocked({
+                        --     clientLocked = false,
+                        --     lockLinks = false,
+                        -- })
+                    -- )
                 end
             end)
 

@@ -5,7 +5,8 @@ local RunService = game:GetService("RunService")
 local Remotes = require(ReplicatedStorage.Remotes)
 local Components = require(ReplicatedStorage.components)
 local Teams = require(ReplicatedStorage.Teams)
-local MatterUtil = require(ReplicatedStorage.Util.matterUtil)
+local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 local Llama = require(ReplicatedStorage.Packages.llama)
 local Set = Llama.Set
@@ -23,7 +24,7 @@ function TeamProv:AxisStarted()
     local world = MatterStart.World
 
     Remotes.Server:OnEvent("ChangeTeam", function(player, newTeamName)
-        local entityId = MatterUtil.getEntityId(player)
+        local entityId = matterUtil.getEntityId(player)
         if entityId then
             -- make sure we're not changing to the same exact team
             local newTeamId = Teams.NameToId[newTeamName]
@@ -49,7 +50,7 @@ function TeamProv:AxisStarted()
                 ["teamIds"] = {};
             }),
             Components.ReplicateToClient({
-                archetypes = {"Alliance"},
+                archetypes = tableUtil.ToSet({"Alliance"})
             })
         )
         Teams.NameToId[allianceName] = allianceId
@@ -68,7 +69,7 @@ function TeamProv:AxisStarted()
                 autoAssignable = teamInfo.autoAssignable;
             }),
             Components.ReplicateToClient({
-                archetypes = {"Team"},
+                archetypes = tableUtil.ToSet({"Team"})
             })
         )
         Teams.NameToId[teamName] = teamId

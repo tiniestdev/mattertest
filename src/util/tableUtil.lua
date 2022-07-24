@@ -9,6 +9,7 @@
 
 --[[
 
+++	tableUtil.ToSet(list)
 ++  tableUtil.FlipNumeric(tab1)
 ++  tableUtil.GetBetweenIndex(t, value, fcomp)
 ++  tableUtil.Flip(tab1) --returned table with index and values flipped
@@ -582,6 +583,14 @@ local function ToString(tab, titleText)
 	return str
 end
 
+local function ToSet(list)
+	local set = {}
+	for _, v in ipairs(list) do
+		set[v] = true
+	end
+	return set
+end
+
 tableUtil.Copy = CopyTable
 tableUtil.CopyShallow = CopyTableShallow
 tableUtil.Sync = Sync
@@ -609,5 +618,6 @@ tableUtil.Flip = Flip
 tableUtil.FlipNumeric = FlipNumeric
 tableUtil.Rotate = Rotate
 tableUtil.ToString = ToString
+tableUtil.ToSet = ToSet
 
 return tableUtil

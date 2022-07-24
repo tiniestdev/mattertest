@@ -5,6 +5,7 @@ local ToolInfos = require(ReplicatedStorage.ToolInfos)
 
 local physicsUtil = require(ReplicatedStorage.Util.physicsUtil)
 local matterUtil = require(ReplicatedStorage.Util.matterUtil)
+local tableUtil = require(ReplicatedStorage.Util.tableUtil)
 
 local toolUtil = {}
 
@@ -12,7 +13,7 @@ function toolUtil.makePresetTool(toolName, props, world)
     local toolInfo = ToolInfos.Catalog[toolName]
     local entityId = world:spawn()
     local toolbarToolComponentSet = matterUtil.getComponentSetFromArchetype("ToolbarTool")
-    local archetypes = {"ToolbarTool"}
+    local archetypes = tableUtil.ToSet({"ToolbarTool"})
 
     for componentName, componentProps in pairs(toolInfo) do
         if Components[componentName] then
@@ -25,7 +26,7 @@ function toolUtil.makePresetTool(toolName, props, world)
 
             -- Any archetypes not covered by being a tool, like GunTool or MeleeTool?
             if not toolbarToolComponentSet[componentName] then
-                table.insert(archetypes, componentName)
+                archetypes[componentName] = true
                 -- print("insert", componentName, entityId, archetypes)
             end
 
@@ -64,6 +65,7 @@ function toolUtil.makePresetTools(toolNames, world)
 end
 
 function toolUtil.getCorporealHandle(corporeal)
+    if not corporeal then return nil end
     if corporeal:IsA("BasePart") then return corporeal end
     return corporeal:FindFirstChild("Handle") or corporeal.PrimaryPart or nil
 end

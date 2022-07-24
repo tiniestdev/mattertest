@@ -17,66 +17,71 @@ return function(world)
     -- or just a simple event or some thing idk idk idk
     -- Do an intercom event for serverwide bullet collisions
     -- and also do a remote event to every client
-    for i, interactions, projectileId in Matter.useEvent(projintevent, "Event") do
-        for _, interaction in ipairs(interactions) do
-            
-            local hitPos = interaction.hitPos
-            local hitNormal = interaction.hitNormal
-            local hitInstance = interaction.hitInstance
-            local hitVelocity = interaction.hitVelocity
-            local projectileMass = interaction.projectileMass
-            local hitDied = interaction.hitDied
+    for i, interactionsMap in Matter.useEvent(projintevent, "Event") do
+        for _, interactionInfo in ipairs(interactionsMap) do
+            local projectileId = interactionInfo[1]
+            local interactions = interactionInfo[2]
 
-            if hitInstance then
-                projectileUtil.applyImpulseFromProjectile(hitInstance, hitVelocity, projectileMass)
-            end
+            for _, interaction in ipairs(interactions) do
+                
+                local hitPos = interaction.hitPos
+                local hitNormal = interaction.hitNormal
+                local hitInstance = interaction.hitInstance
+                local hitVelocity = interaction.hitVelocity
+                local projectileMass = interaction.projectileMass
+                local hitDied = interaction.hitDied
 
-            -- this whole damage thing has got to be improved on later
-            -- considering doing it the runker 51 way but we'll see. i feel like
-            -- there's a conflict between event-based handling and the *matter* way
-            local detectedChar = combatUtil.getCharFromInstance(hitInstance)
-            local victimId = detectedChar and matterUtil.getEntityId(detectedChar) or nil
-            if victimId then
-                if combatUtil.canRoundDamage(projectileId, victimId, world) then
-                    local finalDamage = combatUtil.getDamageFromRoundToInstance(projectileId, hitInstance, world)
-                    local results = combatUtil.damageResults(victimId, finalDamage, world)
-                    local healthVictimC = world:get(victimId, Components.Health)
-                    local lastHealth = healthVictimC.health
-                    world:insert(victimId, healthVictimC:patch({
-                        health = results.finalHealth,
-                    }))
-                    
-                    local blacklist = {}
-                    local instanceC = world:get(victimId, Components.Instance)
-                    if instanceC then
-                        table.insert(blacklist, instanceC.instance)
-                    end
+                if hitInstance then
+                    projectileUtil.applyImpulseFromProjectile(hitInstance, hitVelocity, projectileMass)
+                end
 
-                    if lastHealth > 0 then
-                        local pitch = (7 / math.log(hitVelocity.Magnitude))^2
-                        local volume = hitVelocity.Magnitude / 1000
-                        local heavyVolume = math.max(0, volume - 2)
-                        if volume > 0 then
-                            soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.Hit), hitPos, {
-                                PlaybackSpeed = math.max(0.5, pitch),
-                                Volume = volume,
-                            })
-                        end
-                        if heavyVolume > 0 then
-                            soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.HeavyHit), hitPos, {
-                                PlaybackSpeed = math.max(0.5, pitch),
-                                Volume = heavyVolume,
-                            })
+                -- this whole damage thing has got to be improved on later
+                -- considering doing it the runker 51 way but we'll see. i feel like
+                -- there's a conflict between event-based handling and the *matter* way
+                local detectedChar = combatUtil.getCharFromInstance(hitInstance)
+                local victimId = detectedChar and matterUtil.getEntityId(detectedChar) or nil
+                if victimId then
+                    if combatUtil.canRoundDamage(projectileId, victimId, world) then
+                        local finalDamage = combatUtil.getDamageFromRoundToInstance(projectileId, hitInstance, world)
+                        local results = combatUtil.damageResults(victimId, finalDamage, world)
+                        local healthVictimC = world:get(victimId, Components.Health)
+                        local lastHealth = healthVictimC.health
+                        world:insert(victimId, healthVictimC:patch({
+                            health = results.finalHealth,
+                        }))
+                        
+                        local blacklist = {}
+                        local instanceC = world:get(victimId, Components.Instance)
+                        if instanceC then
+                            table.insert(blacklist, instanceC.instance)
                         end
 
-                        if results.died then
-                            -- ???????
-                            -- TODO
-                            projectileUtil.deathFX(hitPos)
-                            soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.Death), hitPos, {
-                                PlaybackSpeed = randUtil.getNum(0.8,1),
-                                Volume = math.max(1.5, 0.5 + heavyVolume + volume),
-                            })
+                        if lastHealth > 0 then
+                            local pitch = (7 / math.log(hitVelocity.Magnitude))^2
+                            local volume = hitVelocity.Magnitude / 1000
+                            local heavyVolume = math.max(0, volume - 2)
+                            if volume > 0 then
+                                soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.Hit), hitPos, {
+                                    PlaybackSpeed = math.max(0.5, pitch),
+                                    Volume = volume,
+                                })
+                            end
+                            if heavyVolume > 0 then
+                                soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.HeavyHit), hitPos, {
+                                    PlaybackSpeed = math.max(0.5, pitch),
+                                    Volume = heavyVolume,
+                                })
+                            end
+
+                            if results.died then
+                                -- ???????
+                                -- TODO
+                                projectileUtil.deathFX(hitPos)
+                                soundUtil.PlaySoundAtPos(randUtil.chooseFrom(soundUtil.soundCategories.Death), hitPos, {
+                                    PlaybackSpeed = randUtil.getNum(0.8,1),
+                                    Volume = math.max(1.5, 0.5 + heavyVolume + volume),
+                                })
+                            end
                         end
                     end
                 end
